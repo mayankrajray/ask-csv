@@ -1,0 +1,482 @@
+order_id,order_date,region,city,category,product,customer,quantity,unit_price,revenue,channel
+ORD-00119,2024-07-01,East,Patna,Apparel,Cotton Kurta,Ishita Chopra,5,1299,5645.12,App
+ORD-00450,2024-04-14,West,Pune,Home & Kitchen,Table Lamp,Aditya Sharma,5,999,6629.65,App
+ORD-00454,2024-01-27,West,Ahmedabad,Apparel,T-shirt,Tara Sharma,3,599,1810.01,In-store
+ORD-00278,2024-02-04,East,Patna,Beauty,Face Serum,Diya Khan,3,899,1979.31,App
+ORD-00302,2025-01-03,West,Pune,Grocery,Cold Pressed Oil,Sai Chopra,1,399,484.66,App
+ORD-00464,2024-09-26,South,Kochi,Electronics,Power Bank,Anika Nair,4,1499,9205.77,In-store
+ORD-00121,2024-07-16,East,Kolkata,Beauty,Hair Dryer,Aadhya Pillai,4,1899,5874.87,In-store
+ORD-00142,2025-03-03,South,Kochi,Beauty,Sunscreen SPF 50,Rohan Iyer,1,499,537.59,Online
+ORD-00259,2024-03-28,East,Patna,Beauty,Hair Dryer,Aditya Sharma,5,1899,8119.42,Online
+ORD-00014,2024-04-14,South,,Grocery,Cold Pressed Oil,Vivaan Ghosh,5,399,2679.72,Online
+ORD-00295,2024-03-19,North,Jaipur,Apparel,Cotton Kurta,Devansh Bose,1,1299,1210.24,App
+ORD-00480,2025-03-07,East,Kolkata,Grocery,Cold Pressed Oil,Devansh Reddy,1,399,15458.5,App
+ORD-00358,2024-03-20,East,Kolkata,Apparel,T-shirt,Sai Khan,2,599,787.83,App
+ORD-00194,2024-07-13,West,Ahmedabad,Beauty,Hair Dryer,Tara Patel,1,1899,2405.75,Online
+ORD-00233,2024-12-02,West,Ahmedabad,Beauty,Hair Dryer,Nisha Khan,2,1899,5001.43,In-store
+ORD-00090,2024-12-08,East,Bhubaneswar,Apparel,Cotton Kurta,Aadhya Bose,2,1299,1507.09,In-store
+ORD-00228,2025-03-08,West,Ahmedabad,Home & Kitchen,Mixer Grinder,Vivaan Sharma,3,3299,12276.06,Online
+ORD-00147,2024-08-29,South,Bengaluru,Grocery,Cold Pressed Oil,Rohan Verma,5,399,2828.24,In-store
+ORD-00091,2024-12-17,East,Bhubaneswar,Grocery,Organic Honey,Vihaan Ghosh,4,549,1558.3,App
+ORD-00479,2024-12-26,South,Kochi,Apparel,Running Shoes,Tara Joshi,5,2799,21194.1,Online
+ORD-00180,2024-07-11,North,Delhi,Grocery,Organic Honey,Pari Khan,2,549,1092.13,App
+ORD-00366,2024-09-25,South,Chennai,Electronics,Bluetooth Speaker,Rohan Joshi,2,2499,6968.95,Online
+ORD-00396,2024-08-18,West,Mumbai,Electronics,Power Bank,Arjun Patel,3,1499,5419.08,In-store
+ORD-00466,2024-08-31,West,Pune,Electronics,Bluetooth Speaker,Myra Reddy,4,2499,13971.5,In-store
+ORD-00203,2024-11-05,North,Jaipur,Home & Kitchen,Mixer Grinder,Vihaan Das,5,3299,18111.29,In-store
+ORD-00195,2024-07-13,West,Pune,Beauty,Hair Dryer,Simran Nair,4,1899,7736.52,In-store
+ORD-00325,2024-07-17,North,Delhi,Beauty,Face Serum,Aditya Patel,4,899,3262.14,App
+ORD-00405,2025-01-21,South,Bengaluru,Beauty,Sunscreen SPF 50,Diya Iyer,4,499,2501.49,App
+ORD-00476,2024-05-08,East,Bhubaneswar,Apparel,Cotton Kurta,Reyansh Khan,4,1299,3986.34,In-store
+ORD-00241,2024-03-09,East,Kolkata,Home & Kitchen,Table Lamp,Reyansh Pillai,3,999,2178.98,Online
+ORD-00335,2024-05-16,North,Delhi,Apparel,Denim Jacket,Vihaan Nair,3,3299,10034.1,Online
+ORD-00423,2024-05-16,North,Jaipur,Apparel,T-shirt,Aditya Mehta,1,599,640.2,Online
+ORD-00317,2024-02-26,West,Pune,Electronics,Smartwatch,Ayaan Nair,3,6999,25087.57,Online
+ORD-00296,2024-10-27,West,Pune,Beauty,Sunscreen SPF 50,Nisha Singh,1,499,612.8,In-store
+ORD-00353,2024-09-22,East,Patna,Home & Kitchen,Mixer Grinder,Ayaan Ghosh,5,3299,11321.3,In-store
+ORD-00394,2024-03-10,South,Chennai,Home & Kitchen,Mixer Grinder,Kabir Khan,4,3299,15199.06,In-store
+ORD-00343,2025-03-03,North,Delhi,Electronics,Power Bank,Nisha Patel,3,1499,4237.6,Online
+ORD-00066,2024-02-25,East,Kolkata,Grocery,Dry Fruits Pack,Aditya Bose,4,999,3416.48,In-store
+ORD-00388,2025-01-24,West,Ahmedabad,Grocery,Organic Honey,Devansh Mehta,1,549,640.31,App
+ORD-00275,2024-12-15,East,Kolkata,Electronics,Power Bank,Rohan Patel,1,1499,1317.79,Online
+ORD-00237,2024-10-13,North,Lucknow,Grocery,Cold Pressed Oil,Aditya Ghosh,5,399,1882.8,App
+ORD-00236,2024-04-24,East,Patna,Beauty,Hair Dryer,Simran Iyer,3,1899,4383.95,In-store
+ORD-00471,2024-12-29,East,Patna,Home & Kitchen,Air Fryer,Navya Joshi,4,5499,17215.95,In-store
+ORD-00294,2024-12-18,North,Lucknow,Home & Kitchen,Casserole Set,Aditya Reddy,4,1799,7067.16,App
+ORD-00352,2024-07-18,North,Lucknow,Apparel,Denim Jacket,Devansh Iyer,1,3299,3076.33,App
+ORD-00188,2024-02-28,South,Chennai,Home & Kitchen,Air Fryer,Aditya Verma,5,5499,37823.22,In-store
+ORD-00452,2025-01-18,North,Lucknow,Grocery,Dry Fruits Pack,Aadhya Singh,4,999,3413.61,Online
+ORD-00290,2025-01-31,West,Ahmedabad,Apparel,T-shirt,Vihaan Pillai,4,599,2417.9,App
+ORD-00052,2024-09-06,North,Delhi,Apparel,Denim Jacket,Devansh Sharma,5,3299,14607.01,In-store
+ORD-00083,2024-06-14,South,Bengaluru,Beauty,Face Serum,Aadhya Joshi,5,899,5067.31,Online
+ORD-00115,2024-04-16,South,Kochi,Home & Kitchen,Table Lamp,Tara Sharma,1,999,933.02,In-store
+ORD-00311,2024-04-03,West,Mumbai,Apparel,T-shirt,Ayaan Singh,2,599,1581.99,App
+ORD-00061,2025-02-03,East,Patna,Home & Kitchen,Table Lamp,Pari Verma,1,999,822.16,In-store
+ORD-00378,2024-04-27,North,Jaipur,Beauty,Hair Dryer,Kabir Patel,3,1899,6261.04,App
+ORD-00244,2024-06-12,East,Patna,Home & Kitchen,Table Lamp,Devansh Ghosh,1,999,575.52,App
+ORD-00421,2024-01-16,West,Mumbai,Grocery,Cold Pressed Oil,Ayaan Nair,3,399,1564.12,In-store
+ORD-00341,2024-09-08,North,Jaipur,Electronics,Bluetooth Speaker,Anika Joshi,4,2499,9608.1,App
+ORD-00166,2024-05-14,North,Jaipur,Electronics,Power Bank,Aadhya Chopra,2,1499,1872.99,App
+ORD-00169,2024-01-23,North,Lucknow,Electronics,Power Bank,Devansh Verma,2,1499,2718.19,Online
+ORD-00249,2024-04-19,North,Lucknow,Home & Kitchen,Table Lamp,Nisha Ghosh,1,999,1097.58,App
+ORD-00246,2024-10-27,East,Bhubaneswar,Home & Kitchen,Air Fryer,Arjun Verma,3,5499,10576.57,In-store
+ORD-00459,2024-08-18,East,Bhubaneswar,Home & Kitchen,Casserole Set,Kavya Khan,1,1799,1602.43,Online
+ORD-00368,2024-09-16,South,Kochi,Home & Kitchen,Mixer Grinder,Aarav Joshi,1,3299,4246.46,In-store
+ORD-00031,2024-07-20,East,Bhubaneswar,Apparel,T-shirt,Sai Pillai,5,599,1812.55,In-store
+ORD-00323,2024-12-06,North,Delhi,Home & Kitchen,Table Lamp,Myra Nair,2,999,1881.53,App
+ORD-00245,2024-11-03,North,Lucknow,Electronics,Smartwatch,Vivaan Sharma,2,6999,17853.52,App
+ORD-00032,2024-04-24,South,Chennai,Home & Kitchen,Table Lamp,Tara Bose,5,999,177661.74,Online
+ORD-00293,2024-09-06,West,Mumbai,Beauty,Face Serum,Kavya Sharma,3,899,2071.44,Online
+ORD-00053,2024-02-14,West,Pune,Grocery,Cold Pressed Oil,Devansh Ghosh,5,399,2384.67,App
+ORD-00458,2025-01-27,North,Lucknow,Grocery,Cold Pressed Oil,Simran Khan,5,399,2005.92,In-store
+ORD-00400,2024-11-08,South,Bengaluru,Home & Kitchen,Air Fryer,Ananya Mehta,3,5499,19008.03,Online
+ORD-00057,2024-09-20,South,Chennai,Electronics,Smartwatch,Diya Reddy,2,6999,13471.69,App
+ORD-00334,2024-03-11,North,Delhi,Home & Kitchen,Table Lamp,Tara Das,1,999,932.61,In-store
+ORD-00003,2024-06-26,North,Lucknow,Beauty,Hair Dryer,Ananya Nair,5,1899,10160.85,Online
+ORD-00059,2024-07-21,West,Pune,Beauty,Face Serum,Diya Singh,3,899,3912.89,Online
+ORD-00327,2024-09-26,West,Mumbai,Apparel,Denim Jacket,Pari Verma,4,3299,13741.14,App
+ORD-00373,2024-05-09,North,Jaipur,Electronics,Power Bank,Myra Pillai,3,1499,4490.12,App
+ORD-00430,2024-05-24,East,Kolkata,Home & Kitchen,Air Fryer,Ayaan Chopra,4,5499,15424.26,In-store
+ORD-00442,2024-10-16,West,Mumbai,Home & Kitchen,Mixer Grinder,Devansh Reddy,3,3299,11304.73,App
+ORD-00439,2024-02-16,West,Ahmedabad,Beauty,Face Serum,Simran Verma,1,899,1016.05,Online
+ORD-00456,2024-03-07,North,Delhi,Grocery,Organic Honey,Sai Pillai,1,549,491.13,Online
+ORD-00436,2024-12-16,West,Pune,Grocery,Organic Honey,Reyansh Joshi,2,549,1291.13,Online
+ORD-00387,2024-12-13,South,Kochi,Electronics,Bluetooth Speaker,Aarav Joshi,3,2499,8486.59,Online
+ORD-00081,2024-02-16,North,Delhi,Electronics,Smartwatch,Myra Singh,4,6999,35222.2,In-store
+ORD-00214,2024-02-10,West,Ahmedabad,Electronics,Power Bank,Arjun Sharma,2,1499,3974.7,App
+ORD-00027,2024-12-17,North,Jaipur,Home & Kitchen,Air Fryer,Aadhya Bose,2,5499,9656.89,App
+ORD-00160,2024-06-15,South,Bengaluru,Electronics,Smartwatch,Rohan Patel,2,6999,17534.21,Online
+ORD-00282,2025-02-07,North,Jaipur,Beauty,Face Serum,Diya Sharma,2,899,1713.0,App
+ORD-00337,2024-10-24,East,Kolkata,Apparel,Running Shoes,Myra Pillai,2,2799,3646.97,Online
+ORD-00403,2024-05-16,East,Bhubaneswar,Beauty,Hair Dryer,Meera Nair,1,1899,1396.11,In-store
+ORD-00365,2024-04-04,East,Kolkata,Home & Kitchen,Mixer Grinder,Aadhya Bose,3,3299,7755.66,Online
+ORD-00051,2024-12-10,West,Pune,Beauty,Sunscreen SPF 50,Diya Iyer,5,499,3005.47,App
+ORD-00427,2024-05-06,South,Chennai,Beauty,Hair Dryer,Aarav Bose,4,1899,12251.47,App
+ORD-00015,2024-08-09,South,Chennai,Electronics,Bluetooth Speaker,Devansh Das,4,2499,13667.51,In-store
+ORD-00238,2024-01-21,East,Patna,Electronics,Bluetooth Speaker,Navya Verma,5,2499,9223.66,Online
+ORD-00102,2024-02-10,East,Patna,Home & Kitchen,Mixer Grinder,Reyansh Chopra,2,3299,4046.2,In-store
+ORD-00133,2025-01-25,East,Bhubaneswar,Beauty,Face Serum,Nisha Patel,4,899,2173.39,In-store
+ORD-00004,2024-12-25,East,Patna,Electronics,Power Bank,Pari Mehta,2,1499,2040.41,In-store
+ORD-00444,2024-09-11,North,Jaipur,Home & Kitchen,Table Lamp,Saanvi Singh,4,999,136077.53,App
+ORD-00060,2024-10-03,West,Pune,Home & Kitchen,Table Lamp,Ayaan Sharma,1,999,1319.38,Online
+ORD-00264,2024-07-11,North,Jaipur,Apparel,Running Shoes,Tara Patel,4,2799,11243.06,App
+ORD-00201,2024-01-16,South,Bengaluru,Grocery,Cold Pressed Oil,Meera Ghosh,3,399,2126.74,Online
+ORD-00435,2024-06-21,South,Bengaluru,Home & Kitchen,Mixer Grinder,Sai Joshi,3,3299,485196.95,App
+ORD-00099,2024-10-10,North,Lucknow,Grocery,Dry Fruits Pack,Meera Reddy,1,999,1209.36,Online
+ORD-00139,2024-03-11,West,Mumbai,Grocery,Cold Pressed Oil,Ananya Nair,1,399,304.18,Online
+ORD-00041,2024-08-10,West,Mumbai,Electronics,Smartwatch,Aadhya Patel,4,6999,38654.11,App
+ORD-00285,2024-10-07,South,Chennai,Beauty,Hair Dryer,Navya Nair,5,1899,15444.96,Online
+ORD-00116,2024-11-06,North,Lucknow,Beauty,Sunscreen SPF 50,Ishita Joshi,4,499,1754.5,App
+ORD-00250,2024-07-08,East,Bhubaneswar,Home & Kitchen,Mixer Grinder,Aarav Reddy,2,3299,4253.7,App
+ORD-00207,2025-02-10,East,Patna,Grocery,Dry Fruits Pack,Sai Joshi,3,999,2362.3,App
+ORD-00189,2025-01-20,East,Bhubaneswar,Apparel,Cotton Kurta,Arjun Joshi,2,1299,2212.05,App
+ORD-00301,2024-12-08,South,Bengaluru,Electronics,Wireless Earbuds,Arjun Nair,4,3499,19494.3,In-store
+ORD-00080,2024-10-01,East,Bhubaneswar,Beauty,Hair Dryer,Meera Chopra,1,1899,1210.78,App
+ORD-00156,2024-09-06,East,Bhubaneswar,Beauty,Sunscreen SPF 50,Aditya Mehta,3,499,988.2,App
+ORD-00029,2024-02-25,South,Bengaluru,Beauty,Sunscreen SPF 50,Myra Mehta,2,499,1300.02,App
+ORD-00042,2024-08-30,West,Pune,Electronics,Bluetooth Speaker,Pari Mehta,1,2499,2406.39,Online
+ORD-00247,2024-09-10,West,Pune,Electronics,Wireless Earbuds,Tara Nair,3,3499,12601.97,In-store
+ORD-00023,2024-11-25,North,Jaipur,Beauty,Face Serum,Arjun Bose,3,899,2786.0,Online
+ORD-00363,2024-12-14,South,Kochi,Electronics,Smartwatch,Arjun Verma,5,6999,41864.74,In-store
+ORD-00110,2025-02-22,West,Pune,Beauty,Face Serum,Ishita Verma,4,899,3470.35,Online
+ORD-00033,2024-03-10,South,Chennai,Grocery,Dry Fruits Pack,Meera Ghosh,5,999,7722.67,Online
+ORD-00075,2024-03-03,East,Patna,Electronics,Bluetooth Speaker,Navya Ghosh,4,2499,7795.02,App
+ORD-00419,2024-12-25,East,Patna,Beauty,Sunscreen SPF 50,Aarav Iyer,1,499,356.54,App
+ORD-00058,2024-10-25,South,Chennai,Apparel,Cotton Kurta,Ayaan Mehta,2,1299,3880.78,App
+ORD-00345,2024-02-18,West,Mumbai,Electronics,Power Bank,Sai Das,1,1499,1362.63,App
+ORD-00063,2025-03-08,South,Chennai,Home & Kitchen,Table Lamp,Aditya Nair,4,999,4235.47,App
+ORD-00347,2024-10-24,East,Patna,Apparel,Denim Jacket,Simran Singh,1,3299,2611.33,Online
+ORD-00146,2024-10-29,North,Lucknow,Electronics,Bluetooth Speaker,Arjun Verma,1,2499,2521.64,App
+ORD-00112,2024-11-15,West,Mumbai,Apparel,T-shirt,Myra Sharma,5,599,3225.24,Online
+ORD-00085,2024-07-13,East,Patna,Apparel,Denim Jacket,Ananya Bose,5,3299,12210.5,App
+ORD-00218,2024-01-16,West,Pune,Beauty,Hair Dryer,Vivaan Reddy,3,1899,5422.19,In-store
+ORD-00205,2024-10-24,North,Jaipur,Electronics,Wireless Earbuds,Kabir Patel,4,3499,16040.11,Online
+ORD-00221,2024-01-09,West,Mumbai,Apparel,Cotton Kurta,Ishita Singh,2,1299,2845.99,App
+ORD-00174,2024-03-01,East,Patna,Home & Kitchen,Air Fryer,Vihaan Verma,2,5499,8216.32,In-store
+ORD-00130,2024-10-11,East,Kolkata,Electronics,Smartwatch,Tara Pillai,2,6999,10260.23,In-store
+ORD-00382,2025-03-06,East,Bhubaneswar,Beauty,Sunscreen SPF 50,Kabir Verma,3,499,1090.79,In-store
+ORD-00097,2025-02-06,North,Lucknow,Beauty,Hair Dryer,Anika Nair,4,1899,7497.9,App
+ORD-00348,2025-02-17,East,Kolkata,Home & Kitchen,Table Lamp,Diya Ghosh,5,999,3879.28,In-store
+ORD-00213,2024-05-16,East,Patna,Beauty,Hair Dryer,Pari Nair,2,1899,1860.4,In-store
+ORD-00462,2024-05-10,North,Jaipur,Apparel,T-shirt,Aadhya Verma,3,599,2392.88,In-store
+ORD-00354,2024-11-28,West,Pune,Electronics,Power Bank,Nisha Nair,4,1499,7345.8,App
+ORD-00362,2024-05-06,South,Kochi,Beauty,Face Serum,Kabir Mehta,3,899,3040.55,In-store
+ORD-00148,2024-08-22,West,Mumbai,Grocery,Organic Honey,Pari Mehta,1,549,617.05,Online
+ORD-00418,2024-05-23,South,Kochi,Home & Kitchen,Mixer Grinder,Aadhya Patel,4,3299,17105.36,In-store
+ORD-00304,2024-07-12,West,Mumbai,Beauty,Sunscreen SPF 50,Meera Pillai,1,499,556.31,App
+ORD-00222,2024-07-25,North,Lucknow,Grocery,Cold Pressed Oil,Ananya Bose,5,399,1918.2,Online
+ORD-00163,2024-02-29,North,Jaipur,Home & Kitchen,Air Fryer,Aditya Pillai,1,5499,4667.64,Online
+ORD-00082,2024-01-23,North,Delhi,Beauty,Face Serum,Kavya Das,2,899,1304.2,Online
+ORD-00447,2024-01-11,South,Chennai,Electronics,Wireless Earbuds,Rohan Khan,4,3499,20407.84,App
+ORD-00303,2024-08-23,East,Kolkata,Electronics,Bluetooth Speaker,Vihaan Joshi,4,2499,6979.32,Online
+ORD-00257,2024-04-06,South,Chennai,Grocery,Dry Fruits Pack,Ishita Bose,5,999,7392.01,In-store
+ORD-00407,2024-03-25,East,Kolkata,Beauty,Hair Dryer,Ayaan Singh,1,1899,1293.35,Online
+ORD-00254,2025-02-24,South,Kochi,Electronics,Wireless Earbuds,Ayaan Bose,2,3499,8249.3,Online
+ORD-00165,2024-02-19,South,Kochi,Beauty,Sunscreen SPF 50,Kabir Pillai,5,499,2598.96,In-store
+ORD-00422,2024-03-30,West,Mumbai,Apparel,Cotton Kurta,Saanvi Chopra,1,1299,1049.25,In-store
+ORD-00054,2025-01-27,North,Lucknow,Grocery,Dry Fruits Pack,Nisha Khan,2,999,1856.68,App
+ORD-00265,2024-09-26,North,Jaipur,Home & Kitchen,Mixer Grinder,Arjun Mehta,2,3299,6777.45,Online
+ORD-00140,2025-01-04,East,Kolkata,Home & Kitchen,Casserole Set,Aarav Bose,3,1799,4305.39,In-store
+ORD-00281,2024-01-11,North,Delhi,Apparel,Cotton Kurta,Meera Reddy,3,1299,4420.53,App
+ORD-00402,2025-02-07,North,Lucknow,Electronics,Bluetooth Speaker,Tara Patel,4,2499,9072.11,In-store
+ORD-00067,2024-04-03,East,Bhubaneswar,Grocery,Dry Fruits Pack,Myra Ghosh,4,999,3245.51,App
+ORD-00395,2024-10-18,South,Kochi,Grocery,Cold Pressed Oil,Diya Pillai,5,399,2352.34,In-store
+ORD-00279,2024-07-11,North,Lucknow,Apparel,Running Shoes,Kabir Reddy,5,2799,12683.8,Online
+ORD-00409,2024-02-26,South,Kochi,Apparel,Denim Jacket,Kabir Sharma,5,3299,21972.34,App
+ORD-00417,2025-03-04,West,Mumbai,Grocery,Dry Fruits Pack,Sai Bose,5,999,5671.42,Online
+ORD-00100,2024-07-09,North,Lucknow,Beauty,Face Serum,Ananya Patel,3,899,59714.75,Online
+ORD-00243,2024-08-09,North,Delhi,Apparel,T-shirt,Pari Pillai,3,599,1729.32,App
+ORD-00149,2024-05-31,South,Chennai,Electronics,Smartwatch,Arjun Sharma,4,6999,25616.13,Online
+ORD-00016,2024-01-14,West,Mumbai,Electronics,Smartwatch,Aditya Mehta,1,6999,6605.08,In-store
+ORD-00164,2024-02-21,East,Patna,Home & Kitchen,Table Lamp,Reyansh Patel,2,999,1352.24,App
+ORD-00272,2025-02-21,East,Patna,Beauty,Sunscreen SPF 50,Rohan Singh,4,499,1493.55,App
+ORD-00047,2025-02-20,West,Ahmedabad,Grocery,Dry Fruits Pack,Ananya Khan,1,999,946.96,In-store
+ORD-00087,2024-06-25,East,Bhubaneswar,Beauty,Hair Dryer,Vihaan Das,4,1899,5567.57,App
+ORD-00038,2024-04-12,North,Lucknow,Electronics,Wireless Earbuds,Vihaan Pillai,2,3499,7673.94,Online
+ORD-00397,2025-02-12,South,Bengaluru,Electronics,Power Bank,Rohan Mehta,1,1499,1984.56,Online
+ORD-00369,2024-02-15,West,Pune,Beauty,Face Serum,Kabir Sharma,4,899,4473.67,App
+ORD-00173,2024-05-25,North,Lucknow,Electronics,Power Bank,Ananya Bose,3,1499,5766.62,In-store
+ORD-00074,2025-01-17,North,Jaipur,Grocery,Cold Pressed Oil,Ayaan Sharma,4,399,1705.98,Online
+ORD-00328,2024-02-11,South,Bengaluru,Home & Kitchen,Air Fryer,Sai Chopra,5,5499,29637.44,App
+ORD-00105,2024-05-15,South,Chennai,Home & Kitchen,Table Lamp,Rohan Reddy,3,999,3166.18,In-store
+ORD-00434,2024-01-09,West,Ahmedabad,Apparel,Denim Jacket,Saanvi Pillai,2,3299,6483.92,Online
+ORD-00331,2024-06-29,West,Ahmedabad,Electronics,Wireless Earbuds,Diya Ghosh,3,3499,7659.93,In-store
+ORD-00017,2025-02-11,East,Kolkata,Grocery,Organic Honey,Diya Das,1,549,410.04,Online
+ORD-00299,2024-10-04,North,Lucknow,Home & Kitchen,Table Lamp,Aditya Nair,2,999,1922.36,Online
+ORD-00240,2025-01-16,West,Ahmedabad,Apparel,T-shirt,Rohan Sharma,5,599,3870.06,Online
+ORD-00089,2024-06-03,North,Delhi,Electronics,Bluetooth Speaker,Aadhya Singh,3,2499,7039.22,In-store
+ORD-00364,2024-03-05,West,Ahmedabad,Home & Kitchen,Air Fryer,Vihaan Verma,2,5499,11254.45,Online
+ORD-00141,2025-03-07,South,Bengaluru,Grocery,Dry Fruits Pack,Reyansh Ghosh,5,999,6254.47,In-store
+ORD-00103,2024-12-11,East,Bhubaneswar,Home & Kitchen,Casserole Set,Myra Reddy,4,1799,5190.88,App
+ORD-00239,2024-04-16,South,Kochi,Electronics,Power Bank,Ananya Sharma,3,1499,6292.29,In-store
+ORD-00175,2024-06-13,West,Ahmedabad,Electronics,Wireless Earbuds,Arjun Nair,3,3499,9987.64,App
+ORD-00171,2025-01-16,North,Jaipur,Electronics,Wireless Earbuds,Saanvi Ghosh,4,3499,16426.07,App
+ORD-00229,2025-02-01,South,Kochi,Electronics,Bluetooth Speaker,Simran Pillai,5,2499,14331.25,Online
+ORD-00158,2024-11-09,West,Ahmedabad,Apparel,T-shirt,Kavya Singh,5,599,3511.96,Online
+ORD-00071,2024-04-30,West,Ahmedabad,Home & Kitchen,Mixer Grinder,Vihaan Verma,5,3299,18385.49,In-store
+ORD-00134,2024-01-05,South,Bengaluru,Home & Kitchen,Mixer Grinder,Aditya Iyer,2,3299,6966.98,Online
+ORD-00269,2024-09-23,North,Delhi,Beauty,Hair Dryer,Aarav Bose,1,1899,2561.5,In-store
+ORD-00475,2024-09-12,West,Ahmedabad,Apparel,Cotton Kurta,Vihaan Das,5,1299,6414.36,App
+ORD-00411,2024-01-17,North,Delhi,Beauty,Sunscreen SPF 50,Simran Ghosh,3,499,1351.21,In-store
+ORD-00443,2024-10-28,South,Bengaluru,Electronics,Wireless Earbuds,Simran Khan,3,3499,11374.55,Online
+ORD-00217,2024-04-22,South,Chennai,Grocery,Cold Pressed Oil,Myra Khan,4,399,1700.19,In-store
+ORD-00320,2024-02-04,North,Delhi,Electronics,Smartwatch,Nisha Sharma,1,6999,8182.55,Online
+ORD-00431,2024-04-05,North,Delhi,Grocery,Dry Fruits Pack,Ananya Mehta,4,999,4097.58,App
+ORD-00332,2025-02-21,South,Chennai,Home & Kitchen,Table Lamp,Ananya Das,3,999,3915.7,Online
+ORD-00307,2024-05-08,West,Mumbai,Beauty,Sunscreen SPF 50,Ishita Iyer,4,499,2213.99,In-store
+ORD-00019,2024-08-04,South,Kochi,Apparel,T-shirt,Ishita Pillai,4,599,2825.11,Online
+ORD-00178,2024-03-10,East,Bhubaneswar,Home & Kitchen,Table Lamp,Tara Khan,5,999,2886.84,Online
+ORD-00371,2024-06-10,West,Ahmedabad,Beauty,Face Serum,Aadhya Iyer,3,899,3303.47,App
+ORD-00021,2024-11-10,North,Jaipur,Beauty,Face Serum,Aadhya Iyer,2,899,1862.12,In-store
+ORD-00056,2024-06-18,West,Ahmedabad,Home & Kitchen,Table Lamp,Pari Sharma,4,999,4799.43,Online
+ORD-00390,2024-01-19,North,Delhi,Beauty,Face Serum,Ishita Chopra,4,899,3319.79,In-store
+ORD-00406,2024-08-22,South,Kochi,Apparel,T-shirt,Ayaan Bose,3,599,1932.54,In-store
+ORD-00469,2025-01-06,North,Jaipur,Electronics,Smartwatch,Ishita Singh,4,6999,28607.07,App
+ORD-00035,2024-06-16,West,Mumbai,Beauty,Sunscreen SPF 50,Tara Nair,2,499,936.9,Online
+ORD-00182,2025-02-04,East,Bhubaneswar,Apparel,Cotton Kurta,Ayaan Mehta,4,1299,3068.93,In-store
+ORD-00185,2024-07-17,East,Patna,Apparel,T-shirt,Arjun Patel,3,599,1166.8,In-store
+ORD-00151,2024-08-21,East,Bhubaneswar,Beauty,Sunscreen SPF 50,Reyansh Joshi,4,499,1627.73,App
+ORD-00208,2025-01-23,West,Mumbai,Home & Kitchen,Mixer Grinder,Vihaan Ghosh,2,3299,7677.6,Online
+ORD-00223,2024-07-22,South,Bengaluru,Home & Kitchen,Casserole Set,Aarav Nair,1,1799,1936.22,App
+ORD-00329,2024-07-22,West,Mumbai,Grocery,Dry Fruits Pack,Nisha Bose,3,999,3483.78,In-store
+ORD-00355,2024-02-02,North,Jaipur,Beauty,Face Serum,Tara Singh,5,899,5297.56,In-store
+ORD-00284,2024-01-11,South,Kochi,Electronics,Bluetooth Speaker,Ananya Bose,3,2499,10238.96,In-store
+ORD-00098,2024-03-16,East,Bhubaneswar,Electronics,Bluetooth Speaker,Simran Pillai,3,2499,6530.17,In-store
+ORD-00381,2024-05-11,East,Patna,Apparel,Cotton Kurta,Sai Singh,5,1299,4210.38,Online
+ORD-00413,2024-03-11,North,Jaipur,Beauty,Face Serum,Diya Das,5,899,4681.96,Online
+ORD-00155,2024-10-08,West,Ahmedabad,Beauty,Sunscreen SPF 50,Aditya Joshi,2,499,1127.45,In-store
+ORD-00123,2024-05-31,South,Kochi,Apparel,Running Shoes,Aditya Verma,1,2799,4374.08,In-store
+ORD-00114,2024-12-11,West,Mumbai,Home & Kitchen,Mixer Grinder,Aditya Khan,4,3299,13746.82,App
+ORD-00268,2024-07-28,West,Mumbai,Home & Kitchen,Casserole Set,Devansh Joshi,5,1799,10903.76,In-store
+ORD-00319,2024-12-25,North,Lucknow,Beauty,Sunscreen SPF 50,Ayaan Nair,2,499,1088.76,Online
+ORD-00172,2024-04-20,South,Chennai,Home & Kitchen,Casserole Set,Reyansh Sharma,2,1799,4283.03,App
+ORD-00109,2024-12-15,East,Bhubaneswar,Beauty,Sunscreen SPF 50,Nisha Joshi,4,499,1658.75,In-store
+ORD-00309,2024-02-04,South,Chennai,Beauty,Hair Dryer,Saanvi Das,5,1899,10629.27,In-store
+ORD-00095,2024-11-04,East,Patna,Home & Kitchen,Air Fryer,Anika Verma,1,5499,3433.88,In-store
+ORD-00062,2025-02-10,East,Bhubaneswar,Electronics,Bluetooth Speaker,Vihaan Iyer,4,2499,5767.08,App
+ORD-00126,2025-01-29,North,Jaipur,Apparel,T-shirt,Aadhya Nair,2,599,737.12,In-store
+ORD-00398,2024-12-20,North,Jaipur,Home & Kitchen,Mixer Grinder,Vivaan Patel,1,3299,3362.03,Online
+ORD-00315,2024-08-27,East,Patna,Apparel,Cotton Kurta,Ishita Nair,3,1299,2537.31,App
+ORD-00463,2024-08-27,West,Ahmedabad,Apparel,Running Shoes,Sai Nair,4,2799,13943.56,Online
+ORD-00092,2024-12-13,East,Patna,Home & Kitchen,Air Fryer,Ayaan Reddy,2,5499,6715.25,In-store
+ORD-00457,2024-12-17,South,Bengaluru,Apparel,Denim Jacket,Ayaan Ghosh,2,3299,8267.45,In-store
+ORD-00404,2024-01-21,East,Bhubaneswar,Electronics,Bluetooth Speaker,Anika Khan,1,2499,2305.88,In-store
+ORD-00297,2025-03-06,North,Lucknow,Electronics,Wireless Earbuds,Nisha Verma,4,3499,13880.67,In-store
+ORD-00342,2024-02-28,South,Chennai,Apparel,Denim Jacket,Arjun Pillai,3,3299,9592.59,In-store
+ORD-00262,2025-01-31,North,Delhi,Home & Kitchen,Air Fryer,Aadhya Joshi,2,5499,10983.49,Online
+ORD-00260,2025-02-27,North,Lucknow,Apparel,Running Shoes,Sai Singh,5,2799,13611.89,App
+ORD-00465,2024-07-27,East,Bhubaneswar,Apparel,Running Shoes,Ananya Singh,1,2799,2460.91,Online
+ORD-00025,2024-09-24,West,Pune,Home & Kitchen,Air Fryer,Vihaan Pillai,3,5499,18339.16,In-store
+ORD-00379,2024-02-17,South,Chennai,Beauty,Hair Dryer,Reyansh Nair,5,1899,13044.54,Online
+ORD-00339,2024-04-10,South,Chennai,Beauty,Sunscreen SPF 50,Reyansh Pillai,2,499,1408.53,In-store
+ORD-00477,2024-10-31,West,Ahmedabad,Home & Kitchen,Casserole Set,Reyansh Das,3,1799,5447.03,In-store
+ORD-00206,2024-01-27,South,Bengaluru,Home & Kitchen,Mixer Grinder,Anika Patel,2,3299,6889.96,App
+ORD-00474,2025-01-09,South,Bengaluru,Electronics,Smartwatch,Simran Reddy,3,6999,27659.44,App
+ORD-00127,2025-01-06,East,Bhubaneswar,Electronics,Smartwatch,Arjun Iyer,2,6999,11027.06,In-store
+ORD-00391,2024-11-23,East,Patna,Apparel,Cotton Kurta,Meera Sharma,2,1299,1925.11,In-store
+ORD-00079,2024-12-22,North,Lucknow,Grocery,Dry Fruits Pack,Aditya Verma,5,999,4943.2,App
+ORD-00271,2024-03-28,West,Pune,Home & Kitchen,Casserole Set,Ayaan Reddy,5,1799,10485.05,In-store
+ORD-00179,2024-10-13,West,Pune,Electronics,Power Bank,Pari Joshi,4,1499,6893.41,App
+ORD-00415,2024-05-02,East,Patna,Electronics,Wireless Earbuds,Arjun Mehta,2,3499,5801.93,In-store
+ORD-00359,2025-02-15,East,Patna,Electronics,Wireless Earbuds,Arjun Chopra,5,3499,12185.34,App
+ORD-00224,2024-07-04,North,Jaipur,Apparel,Cotton Kurta,Arjun Singh,3,1299,3837.14,App
+ORD-00338,2024-10-05,West,Mumbai,Home & Kitchen,Air Fryer,Meera Patel,4,5499,28214.12,Online
+ORD-00094,2024-05-18,South,Chennai,Electronics,Bluetooth Speaker,Myra Das,1,2499,2966.5,App
+ORD-00070,2024-07-29,West,Pune,Beauty,Hair Dryer,Rohan Sharma,1,1899,2619.19,App
+ORD-00037,2025-03-09,North,Delhi,Apparel,Running Shoes,Diya Bose,4,2799,10533.3,In-store
+ORD-00161,2024-01-15,South,Kochi,Electronics,Smartwatch,Arjun Verma,5,6999,37300.17,In-store
+ORD-00012,2024-09-04,East,Bhubaneswar,Home & Kitchen,Table Lamp,Ishita Khan,1,999,716.37,In-store
+ORD-00145,2024-12-25,West,Ahmedabad,Apparel,Denim Jacket,Vihaan Khan,2,3299,7878.17,Online
+ORD-00432,2024-03-09,West,Mumbai,Apparel,Running Shoes,Aarav Patel,3,2799,8944.56,App
+ORD-00128,2024-09-02,West,Mumbai,Apparel,Cotton Kurta,Ishita Singh,2,1299,2912.89,In-store
+ORD-00274,2024-09-30,North,Jaipur,Electronics,Smartwatch,Myra Mehta,1,6999,6798.73,Online
+ORD-00010,2024-01-08,North,Lucknow,Electronics,Power Bank,Ishita Bose,4,1499,6563.78,App
+ORD-00360,2025-02-06,North,Jaipur,Beauty,Hair Dryer,Reyansh Singh,1,1899,1549.23,App
+ORD-00177,2024-10-14,West,Pune,Home & Kitchen,Casserole Set,Vihaan Chopra,1,1799,1159.41,App
+ORD-00232,2024-06-28,East,Bhubaneswar,Apparel,Denim Jacket,Devansh Reddy,3,3299,6998.55,App
+ORD-00211,2024-04-29,North,Delhi,Electronics,Power Bank,Ananya Chopra,5,1499,7199.24,Online
+ORD-00129,2024-09-14,West,Pune,Grocery,Dry Fruits Pack,Ananya Iyer,4,999,4295.27,Online
+ORD-00144,2024-06-01,North,Lucknow,Electronics,Bluetooth Speaker,Aarav Singh,2,2499,4581.02,App
+ORD-00242,2024-03-25,West,Ahmedabad,Grocery,Dry Fruits Pack,Saanvi Khan,5,999,5790.33,In-store
+ORD-00008,2024-07-10,North,Jaipur,Beauty,Sunscreen SPF 50,Simran Verma,-3,499,-1497.0,Online
+ORD-00255,2024-10-20,North,Lucknow,Electronics,Wireless Earbuds,Aadhya Chopra,5,3499,20013.21,Online
+ORD-00356,2024-03-11,South,Chennai,Home & Kitchen,Casserole Set,Myra Mehta,4,1799,7519.28,App
+ORD-00322,2024-11-06,East,Bhubaneswar,Home & Kitchen,Table Lamp,Ananya Iyer,3,999,2385.72,In-store
+ORD-00009,2024-12-31,West,Ahmedabad,Home & Kitchen,Table Lamp,Sai Mehta,2,999,2373.07,In-store
+ORD-00157,2024-01-06,West,Ahmedabad,Home & Kitchen,Mixer Grinder,Ananya Sharma,2,3299,9678.93,Online
+ORD-00028,2024-12-25,South,Bengaluru,Electronics,Smartwatch,Kavya Patel,1,6999,8540.57,In-store
+ORD-00267,2024-08-20,West,Mumbai,Home & Kitchen,Air Fryer,Tara Das,3,5499,18734.08,Online
+ORD-00065,2024-11-12,South,Chennai,Beauty,Hair Dryer,Diya Bose,4,1899,10084.48,Online
+ORD-00256,2025-02-13,West,Pune,Grocery,Organic Honey,Vihaan Patel,4,549,2663.49,In-store
+ORD-00306,2024-09-11,East,Patna,Home & Kitchen,Casserole Set,Rohan Pillai,5,1799,5640.9,App
+ORD-00154,2024-03-21,North,Jaipur,Grocery,Cold Pressed Oil,Arjun Reddy,4,399,1317.8,In-store
+ORD-00049,2024-07-18,North,Delhi,Home & Kitchen,Mixer Grinder,Navya Sharma,1,3299,3181.14,Online
+ORD-00209,2024-05-04,South,Bengaluru,Apparel,Denim Jacket,Sai Sharma,1,3299,4402.3,Online
+ORD-00288,2024-03-18,East,Bhubaneswar,Apparel,Cotton Kurta,Arjun Singh,2,1299,1621.01,App
+ORD-00002,2024-12-08,West,Ahmedabad,Beauty,Sunscreen SPF 50,Vihaan Bose,3,499,1501.27,In-store
+ORD-00270,2024-01-30,West,Mumbai,Home & Kitchen,Casserole Set,Simran Joshi,5,1799,10180.98,App
+ORD-00266,2024-11-10,South,Kochi,Apparel,T-shirt,Arjun Joshi,5,599,3591.61,Online
+ORD-00314,2024-11-22,West,Ahmedabad,Electronics,Smartwatch,Reyansh Nair,3,6999,19141.15,App
+ORD-00351,2025-01-10,North,Lucknow,Electronics,Wireless Earbuds,Navya Nair,3,3499,8706.86,Online
+ORD-00096,2025-03-08,South,Chennai,Grocery,Cold Pressed Oil,Ishita Joshi,3,399,1370.66,App
+ORD-00441,2025-01-17,North,Lucknow,Grocery,Dry Fruits Pack,Tara Mehta,3,999,2764.58,Online
+ORD-00467,2024-12-14,North,Jaipur,Apparel,Denim Jacket,Ayaan Chopra,5,3299,15966.01,In-store
+ORD-00376,2024-06-20,South,Chennai,Grocery,Dry Fruits Pack,Aadhya Nair,2,999,2987.6,Online
+ORD-00117,2025-01-29,South,Kochi,Apparel,Cotton Kurta,Sai Chopra,2,1299,3954.41,In-store
+ORD-00046,2025-01-12,South,Bengaluru,Beauty,Sunscreen SPF 50,Ananya Patel,2,499,1645.94,Online
+ORD-00162,2024-05-03,West,Pune,Grocery,Organic Honey,Sai Bose,3,549,1512.73,In-store
+ORD-00370,2024-05-06,East,Kolkata,Beauty,Sunscreen SPF 50,Ishita Patel,4,499,1378.02,App
+ORD-00118,2024-10-22,North,Lucknow,Home & Kitchen,Air Fryer,Aarav Mehta,3,5499,15176.95,App
+ORD-00289,2024-01-06,West,Pune,Electronics,Power Bank,Myra Iyer,4,1499,6141.79,Online
+ORD-00078,2025-01-04,West,Ahmedabad,Apparel,Running Shoes,Vivaan Pillai,2,2799,7161.39,App
+ORD-00377,2024-06-26,East,Kolkata,Electronics,Wireless Earbuds,Navya Mehta,2,3499,5440.02,In-store
+ORD-00064,2024-09-25,East,Kolkata,Electronics,Bluetooth Speaker,Arjun Sharma,1,2499,2052.45,In-store
+ORD-00374,2024-02-13,South,Kochi,Home & Kitchen,Mixer Grinder,Devansh Mehta,3,3299,13255.68,In-store
+ORD-00231,2024-04-07,South,Bengaluru,Beauty,Face Serum,Ishita Chopra,1,899,1385.34,Online
+ORD-00298,2024-03-24,South,Bengaluru,Apparel,Cotton Kurta,Ananya Iyer,3,1299,5242.5,App
+ORD-00187,2024-05-26,East,Bhubaneswar,Beauty,Sunscreen SPF 50,Devansh Reddy,3,499,1038.58,App
+ORD-00449,2024-12-06,South,Chennai,Apparel,Cotton Kurta,Arjun Reddy,1,1299,1899.9,App
+ORD-00200,2024-12-02,West,Mumbai,Electronics,Bluetooth Speaker,Aditya Das,4,2499,11100.03,App
+ORD-00472,2024-09-25,North,Delhi,Electronics,Smartwatch,Sai Sharma,5,6999,37618.51,In-store
+ORD-00122,2024-03-03,South,Kochi,Home & Kitchen,Casserole Set,Saanvi Sharma,1,1799,1664.97,In-store
+ORD-00446,2024-08-18,North,Delhi,Apparel,T-shirt,Meera Patel,5,599,2754.33,Online
+ORD-00414,2024-11-02,North,Lucknow,Apparel,Denim Jacket,Sai Bose,2,3299,5564.81,App
+ORD-00308,2024-11-10,West,Pune,Grocery,Cold Pressed Oil,Kavya Reddy,5,399,3115.69,In-store
+ORD-00440,2024-02-03,West,Ahmedabad,Beauty,Face Serum,Navya Nair,1,899,1040.46,App
+ORD-00159,2024-06-18,South,Chennai,Home & Kitchen,Casserole Set,Saanvi Pillai,3,1799,7726.82,In-store
+ORD-00086,2024-02-25,South,Kochi,Home & Kitchen,Mixer Grinder,Vihaan Verma,5,3299,21114.19,Online
+ORD-00226,2025-01-20,East,Bhubaneswar,Apparel,T-shirt,Tara Joshi,1,599,252.52,Online
+ORD-00263,2024-10-11,East,Patna,Grocery,Organic Honey,Vihaan Reddy,5,549,2284.93,Online
+ORD-00386,2024-01-15,South,Bengaluru,Electronics,Bluetooth Speaker,Sai Khan,2,2499,6395.99,App
+ORD-00077,2024-01-07,South,Chennai,Grocery,Cold Pressed Oil,Simran Singh,1,399,560.81,App
+ORD-00428,2024-12-27,West,Pune,Electronics,Bluetooth Speaker,Vivaan Verma,5,2499,17319.51,App
+ORD-00361,2024-10-19,East,Kolkata,Home & Kitchen,Mixer Grinder,Ayaan Verma,4,3299,7977.57,In-store
+ORD-00088,2024-05-20,North,Lucknow,Home & Kitchen,Casserole Set,Aarav Bose,5,1799,8599.41,In-store
+ORD-00043,2024-03-16,East,Bhubaneswar,Electronics,Power Bank,Myra Chopra,3,1499,2745.01,In-store
+ORD-00183,2024-02-05,South,Chennai,Beauty,Hair Dryer,Aadhya Reddy,3,1899,7616.22,In-store
+ORD-00106,2024-02-19,South,Kochi,Home & Kitchen,Casserole Set,Rohan Singh,1,1799,2361.51,In-store
+ORD-00385,2025-01-31,South,Bengaluru,Apparel,Cotton Kurta,Nisha Reddy,2,1299,3273.68,In-store
+ORD-00050,2024-09-15,North,Lucknow,Electronics,Smartwatch,Navya Chopra,3,6999,21486.53,Online
+ORD-00468,2024-01-06,North,Lucknow,Electronics,Smartwatch,Ananya Nair,4,6999,32541.23,Online
+ORD-00006,2024-10-24,North,Jaipur,Electronics,Bluetooth Speaker,Myra Das,5,2499,11733.28,Online
+ORD-00018,2024-10-02,South,Bengaluru,Apparel,Denim Jacket,Rohan Reddy,4,3299,12914.48,Online
+ORD-00235,2024-08-07,East,Kolkata,Apparel,Cotton Kurta,Meera Nair,4,1299,3690.35,App
+ORD-00383,2024-07-16,West,Pune,Beauty,Face Serum,Vivaan Ghosh,4,899,4115.34,In-store
+ORD-00107,2024-05-20,South,Bengaluru,Electronics,Smartwatch,Pari Ghosh,1,6999,8539.24,App
+ORD-00135,2024-01-17,North,Jaipur,Apparel,Running Shoes,Aadhya Joshi,2,2799,6173.82,In-store
+ORD-00389,2024-08-03,West,Mumbai,Electronics,Power Bank,Ananya Joshi,1,1499,2122.96,Online
+ORD-00227,2024-06-28,North,Delhi,Home & Kitchen,Casserole Set,Nisha Joshi,1,1799,2156.54,Online
+ORD-00215,2025-01-06,North,Jaipur,Beauty,Sunscreen SPF 50,Arjun Das,1,499,456.97,App
+ORD-00191,2025-02-01,South,Bengaluru,Apparel,Denim Jacket,Nisha Khan,5,3299,21886.27,In-store
+ORD-00424,2024-09-05,West,Ahmedabad,Apparel,Denim Jacket,Vivaan Mehta,4,3299,16192.14,Online
+ORD-00321,2024-02-10,East,Patna,Beauty,Hair Dryer,Devansh Ghosh,4,1899,5347.13,Online
+ORD-00283,2024-07-12,East,Patna,Home & Kitchen,Casserole Set,Diya Joshi,5,1799,6118.58,In-store
+ORD-00030,2025-02-01,West,Mumbai,Electronics,Bluetooth Speaker,Sai Iyer,5,2499,12289.05,In-store
+ORD-00170,2024-04-27,West,Ahmedabad,Electronics,Smartwatch,Meera Singh,1,6999,7141.23,In-store
+ORD-00181,2024-06-23,South,Bengaluru,Grocery,Cold Pressed Oil,Devansh Iyer,3,399,1504.02,App
+ORD-00101,2024-10-02,North,Lucknow,Grocery,Cold Pressed Oil,Arjun Bose,2,399,874.31,App
+ORD-00198,2024-09-12,South,Bengaluru,Apparel,Running Shoes,Devansh Singh,2,2799,8523.71,App
+ORD-00210,2024-01-19,South,Kochi,Beauty,Face Serum,Anika Reddy,2,899,2844.66,Online
+ORD-00136,2024-05-22,West,Pune,Apparel,Cotton Kurta,Reyansh Chopra,3,1299,3475.46,App
+ORD-00451,2024-12-14,West,Pune,Grocery,Dry Fruits Pack,Arjun Das,5,999,4897.17,Online
+ORD-00412,2024-11-24,East,Patna,Beauty,Hair Dryer,Meera Sharma,3,1899,3330.1,Online
+ORD-00199,2024-06-10,South,Kochi,Home & Kitchen,Mixer Grinder,Ananya Joshi,1,3299,3460.67,Online
+ORD-00167,2024-08-16,East,Bhubaneswar,Home & Kitchen,Casserole Set,Ananya Iyer,1,1799,1266.59,Online
+ORD-00372,2024-01-11,South,Bengaluru,Grocery,Cold Pressed Oil,Ananya Bose,1,399,587.69,Online
+ORD-00137,2024-04-20,South,Bengaluru,Beauty,Face Serum,Diya Das,5,899,4657.81,App
+ORD-00286,2025-03-07,West,Mumbai,Grocery,Dry Fruits Pack,Meera Iyer,4,999,4415.56,Online
+ORD-00336,2024-11-25,West,Ahmedabad,Home & Kitchen,Mixer Grinder,Meera Chopra,3,3299,8047.64,Online
+ORD-00132,2024-08-13,North,Lucknow,Home & Kitchen,Air Fryer,Ayaan Chopra,4,5499,21187.45,Online
+ORD-00040,2024-03-01,East,Kolkata,Beauty,Sunscreen SPF 50,Vihaan Verma,3,499,1124.69,In-store
+ORD-00216,2025-02-27,South,Bengaluru,Grocery,Dry Fruits Pack,Meera Singh,5,999,131375.97,Online
+ORD-00044,2024-01-12,South,Chennai,Beauty,Sunscreen SPF 50,Aditya Nair,4,499,2222.14,App
+ORD-00055,2024-11-17,East,Bhubaneswar,Beauty,Sunscreen SPF 50,Kabir Bose,1,499,336.1,App
+ORD-00455,2024-10-24,West,Pune,Grocery,Organic Honey,Reyansh Verma,3,549,1370.61,App
+ORD-00300,2024-06-25,North,Delhi,Grocery,Organic Honey,Sai Singh,5,549,2013.33,In-store
+ORD-00437,2024-08-23,West,Mumbai,Home & Kitchen,Table Lamp,Diya Das,4,999,3907.45,Online
+ORD-00305,2024-09-28,North,Lucknow,Electronics,Bluetooth Speaker,Nisha Nair,2,2499,5484.1,Online
+ORD-00036,2024-03-10,North,Delhi,Grocery,Dry Fruits Pack,Arjun Mehta,4,999,4871.99,App
+ORD-00316,2025-02-20,North,Jaipur,Electronics,Smartwatch,Navya Reddy,3,6999,21442.41,App
+ORD-00310,2024-12-08,West,Mumbai,Apparel,Denim Jacket,Rohan Bose,4,3299,11537.74,App
+ORD-00277,2024-06-20,West,Pune,Grocery,Cold Pressed Oil,Rohan Verma,2,399,832.86,App
+ORD-00125,2024-08-08,West,Ahmedabad,Grocery,Dry Fruits Pack,Kabir Ghosh,3,999,3269.57,In-store
+ORD-00143,2024-05-11,East,Patna,Electronics,Bluetooth Speaker,Pari Patel,2,2499,3832.04,App
+ORD-00111,2024-10-10,East,Patna,Grocery,Organic Honey,Devansh Pillai,3,549,1193.62,Online
+ORD-00324,2024-10-26,West,Ahmedabad,Apparel,T-shirt,Meera Ghosh,4,599,2516.92,App
+ORD-00333,2024-10-08,North,Delhi,Home & Kitchen,Mixer Grinder,Aadhya Joshi,3,3299,9450.5,App
+ORD-00420,2024-03-20,South,Bengaluru,Apparel,Running Shoes,Ishita Singh,1,2799,2529.77,App
+ORD-00108,2024-09-18,South,Chennai,Apparel,Cotton Kurta,Aarav Iyer,3,1299,5062.72,App
+ORD-00426,2024-01-15,West,Mumbai,Electronics,Smartwatch,Vivaan Joshi,5,6999,34871.52,Online
+ORD-00013,2024-09-20,North,Jaipur,Beauty,Face Serum,Nisha Nair,1,899,836.65,Online
+ORD-00273,2024-08-02,South,Chennai,Electronics,Bluetooth Speaker,Saanvi Joshi,3,2499,7365.14,In-store
+ORD-00048,2024-05-17,North,Delhi,Grocery,Cold Pressed Oil,Vihaan Khan,5,399,2227.62,Online
+ORD-00204,2024-10-26,East,Kolkata,Home & Kitchen,Air Fryer,Anika Sharma,4,5499,13881.99,App
+ORD-00410,2025-03-04,South,Kochi,Beauty,Hair Dryer,Ananya Das,5,1899,15034.72,In-store
+ORD-00120,2024-06-23,South,Kochi,Home & Kitchen,Air Fryer,Reyansh Chopra,1,5499,6677.93,Online
+ORD-00022,2024-11-09,West,Mumbai,Beauty,Hair Dryer,Devansh Iyer,4,1899,8764.03,In-store
+ORD-00084,2024-03-07,East,Patna,Home & Kitchen,Air Fryer,Tara Das,2,5499,7302.75,In-store
+ORD-00131,2024-11-17,North,Delhi,Grocery,Dry Fruits Pack,Vivaan Nair,1,999,881.75,In-store
+ORD-00461,2024-03-04,East,Bhubaneswar,Grocery,Cold Pressed Oil,Vivaan Pillai,3,399,837.62,In-store
+ORD-00330,2025-02-07,South,Bengaluru,Beauty,Sunscreen SPF 50,Diya Singh,5,499,3217.3,In-store
+ORD-00230,2025-02-25,South,Chennai,Home & Kitchen,Air Fryer,Rohan Joshi,5,5499,36054.59,In-store
+ORD-00473,2024-08-19,South,Kochi,Grocery,Dry Fruits Pack,Aditya Patel,3,999,3964.86,Online
+ORD-00287,2024-12-23,North,Jaipur,Beauty,Face Serum,Devansh Reddy,4,899,3468.35,App
+ORD-00124,2024-07-17,North,Jaipur,Electronics,Smartwatch,Pari Das,5,6999,41359.81,In-store
+ORD-00034,2024-05-19,West,Mumbai,Home & Kitchen,Air Fryer,Ishita Das,1,5499,5934.05,In-store
+ORD-00453,2024-03-30,East,Patna,Beauty,Hair Dryer,Ishita Pillai,1,1899,1237.96,In-store
+ORD-00005,2024-10-22,North,Lucknow,Home & Kitchen,Table Lamp,Rohan Bose,4,999,3784.93,In-store
+ORD-00020,2024-07-16,West,Mumbai,Beauty,Sunscreen SPF 50,Reyansh Das,4,499,1968.3,App
+ORD-00220,2024-08-16,South,Kochi,Apparel,Cotton Kurta,Ayaan Singh,1,1299,1831.92,App
+ORD-00380,2024-01-21,West,Pune,Apparel,Denim Jacket,Diya Pillai,3,3299,13360.15,Online
+ORD-00478,2024-03-30,North,Delhi,Grocery,Organic Honey,Navya Pillai,4,549,2167.36,In-store
+ORD-00357,2024-11-10,North,Lucknow,Home & Kitchen,Air Fryer,Tara Pillai,3,5499,13546.36,Online
+ORD-00150,2025-01-14,East,Kolkata,Apparel,T-shirt,Reyansh Iyer,5,599,1830.75,In-store
+ORD-00225,2024-04-19,North,Delhi,Apparel,Running Shoes,Kabir Nair,1,2799,3756.94,App
+ORD-00248,2024-05-31,North,Jaipur,Electronics,Smartwatch,Aditya Iyer,1,6999,7919.24,In-store
+ORD-00425,2024-01-08,East,Patna,Grocery,Cold Pressed Oil,Nisha Chopra,4,399,1272.67,App
+ORD-00152,2024-08-13,West,Mumbai,Home & Kitchen,Table Lamp,Aarav Reddy,5,999,5246.31,In-store
+ORD-00460,2024-01-10,West,Mumbai,Apparel,Running Shoes,Diya Sharma,5,2799,16352.82,In-store
+ORD-00318,2024-06-03,West,Ahmedabad,Grocery,Cold Pressed Oil,Saanvi Nair,5,399,2255.3,App
+ORD-00292,2024-12-03,South,Kochi,Apparel,T-shirt,Ishita Joshi,4,599,2989.19,App
+ORD-00234,2024-08-30,South,Bengaluru,Beauty,Hair Dryer,Kabir Verma,2,1899,5299.04,In-store
+ORD-00011,2024-08-09,South,Kochi,Home & Kitchen,Air Fryer,Reyansh Verma,3,5499,19770.18,In-store
+ORD-00280,2024-06-21,North,Delhi,Home & Kitchen,Air Fryer,Reyansh Iyer,4,5499,21853.69,Online
+ORD-00072,2024-01-10,East,Kolkata,Beauty,Hair Dryer,Ananya Das,1,1899,1009.82,Online
+ORD-00253,2024-02-03,West,Mumbai,Beauty,Hair Dryer,Navya Reddy,5,1899,10247.16,App
+ORD-00093,2025-01-12,North,Delhi,Electronics,Wireless Earbuds,Vivaan Patel,5,3499,18456.87,In-store
+ORD-00350,2024-10-07,North,Delhi,Home & Kitchen,Casserole Set,Pari Bose,2,1799,3705.74,App
+ORD-00416,2024-05-12,East,Kolkata,Apparel,Denim Jacket,Aarav Singh,4,3299,7044.98,Online
+ORD-00375,2025-01-17,West,Ahmedabad,Grocery,Cold Pressed Oil,Arjun Das,3,399,1101.21,Online
+ORD-00401,2024-05-19,East,Patna,Beauty,Hair Dryer,Ishita Ghosh,5,1899,7278.01,App
+ORD-00193,2024-07-12,East,Patna,Home & Kitchen,Air Fryer,Aadhya Das,4,5499,16517.72,App
+ORD-00258,2024-06-08,South,Kochi,Apparel,Running Shoes,Rohan Mehta,1,2799,4154.11,Online
+ORD-00340,2024-12-13,West,Ahmedabad,Grocery,Organic Honey,Reyansh Singh,5,549,2627.68,In-store
+ORD-00470,2025-01-31,North,Lucknow,Apparel,Denim Jacket,Aditya Pillai,3,3299,10809.17,App
+ORD-00196,2025-01-01,West,Ahmedabad,Grocery,Cold Pressed Oil,Nisha Pillai,5,399,1866.92,App
+ORD-00344,2024-05-02,North,Delhi,Beauty,Sunscreen SPF 50,Vivaan Ghosh,4,499,2138.25,In-store
+ORD-00138,2024-01-25,East,Kolkata,Electronics,Bluetooth Speaker,Vihaan Verma,2,2499,3644.57,Online
+ORD-00261,2024-09-03,West,Ahmedabad,Electronics,Wireless Earbuds,Tara Sharma,1,3499,3900.68,Online
+ORD-00039,2024-11-29,South,Chennai,Grocery,Dry Fruits Pack,Meera Chopra,3,999,3252.78,Online
+ORD-00202,2024-03-04,West,Pune,Electronics,Power Bank,Ishita Bose,3,1499,5219.58,App
+ORD-00448,2024-07-14,East,Kolkata,Apparel,Denim Jacket,Meera Reddy,5,3299,8322.96,In-store
+ORD-00291,2024-05-31,South,Bengaluru,Grocery,Cold Pressed Oil,Aarav Das,5,399,2554.37,App
+ORD-00190,2024-10-18,West,Ahmedabad,Apparel,T-shirt,Vihaan Joshi,1,599,19034.03,Online
+ORD-00252,2024-12-30,North,Delhi,Grocery,Dry Fruits Pack,Aditya Sharma,5,999,5535.86,App
+ORD-00113,2025-02-22,South,Bengaluru,Home & Kitchen,Table Lamp,Meera Das,3,999,4202.88,Online
+ORD-00438,2024-02-20,East,Patna,Home & Kitchen,Air Fryer,Sai Iyer,2,5499,7250.79,Online
+ORD-00184,2025-01-02,North,Delhi,Beauty,Sunscreen SPF 50,Vivaan Patel,3,499,1181.67,App
+ORD-00153,2024-12-02,South,Chennai,Grocery,Cold Pressed Oil,Arjun Mehta,5,399,2343.38,In-store
+ORD-00313,2024-12-21,South,Bengaluru,Home & Kitchen,Air Fryer,Meera Reddy,5,5499,35647.0,In-store
+ORD-00326,2024-08-30,East,Kolkata,Apparel,Running Shoes,Pari Iyer,2,2799,5251.5,In-store
+ORD-00192,2024-09-23,East,Patna,Grocery,Organic Honey,Reyansh Sharma,4,549,1536.13,Online
+ORD-00045,2024-11-29,South,Bengaluru,Apparel,Denim Jacket,Aditya Reddy,4,3299,15185.03,App
+ORD-00445,2024-12-13,North,Jaipur,Apparel,T-shirt,Aarav Singh,4,599,2603.01,App
+ORD-00276,2024-11-27,East,Kolkata,Grocery,Dry Fruits Pack,Navya Joshi,1,999,614.39,In-store
+ORD-00007,2024-12-12,West,Pune,Electronics,Smartwatch,Navya Bose,1,6999,7911.28,Online
+ORD-00251,2024-04-01,South,Kochi,Beauty,Face Serum,Aadhya Ghosh,4,899,5112.57,In-store
+ORD-00312,2024-04-08,West,Ahmedabad,Electronics,Smartwatch,Navya Singh,5,6999,36997.68,In-store
+ORD-00076,2024-03-06,North,Delhi,Apparel,Running Shoes,Ishita Sharma,5,2799,15717.49,App
+ORD-00001,2024-07-09,North,Lucknow,Beauty,Hair Dryer,Sai Verma,5,1899,10834.6,In-store
+ORD-00429,2024-11-28,North,Jaipur,Grocery,Dry Fruits Pack,Vivaan Reddy,2,999,2119.37,In-store
+ORD-00392,2024-06-21,South,Chennai,Apparel,T-shirt,Devansh Iyer,5,599,3778.96,Online
+ORD-00384,2024-02-20,South,Bengaluru,Electronics,Power Bank,Reyansh Chopra,4,1499,7200.94,Online
+ORD-00433,2024-05-28,North,Lucknow,Apparel,Cotton Kurta,Meera Khan,4,1299,5853.76,In-store
+ORD-00069,2024-11-17,North,Lucknow,Home & Kitchen,Air Fryer,Arjun Khan,2,5499,13441.96,App
+ORD-00168,2024-11-16,West,Pune,Home & Kitchen,Casserole Set,Ayaan Chopra,4,1799,6369.19,In-store
+ORD-00393,2024-11-25,West,Ahmedabad,Grocery,Organic Honey,Vivaan Das,2,549,1271.07,In-store
+ORD-00219,2024-04-25,East,Kolkata,Apparel,Running Shoes,Kabir Khan,4,2799,5956.03,Online
+ORD-00043,2024-03-16,East,Bhubaneswar,Electronics,Power Bank,Myra Chopra,3,1499,2745.01,In-store
+ORD-00367,2024-05-28,South,Bengaluru,Home & Kitchen,Mixer Grinder,Ishita Chopra,3,3299,12687.88,Online
+ORD-00346,2024-12-15,South,Chennai,Electronics,Smartwatch,Kavya Khan,4,6999,35820.35,Online
+ORD-00073,2024-01-10,West,Pune,Apparel,Running Shoes,Myra Joshi,2,2799,6943.88,In-store
+ORD-00024,2024-02-18,South,Chennai,Electronics,Bluetooth Speaker,Saanvi Patel,1,2499,2823.99,App
+ORD-00399,2024-06-24,North,Jaipur,Apparel,Cotton Kurta,Reyansh Iyer,5,1299,6713.52,Online
+ORD-00186,2024-11-17,West,Ahmedabad,Apparel,Denim Jacket,Devansh Iyer,2,3299,7989.15,App
+ORD-00349,2024-11-15,West,Pune,Beauty,Face Serum,Diya Mehta,1,899,1254.39,In-store
+ORD-00104,2025-01-02,East,Patna,Apparel,T-shirt,Diya Mehta,2,599,875.89,App
+ORD-00408,2024-08-21,South,Bengaluru,Apparel,Denim Jacket,Ishita Patel,5,3299,20899.58,In-store
+ORD-00212,2024-11-17,North,Jaipur,Apparel,Denim Jacket,Reyansh Nair,3,3299,9952.27,In-store
+ORD-00068,2024-06-09,West,Pune,Apparel,T-shirt,Ayaan Pillai,3,599,2019.27,Online
+ORD-00026,2024-02-09,South,Chennai,Beauty,Face Serum,Diya Das,2,899,3229.84,App
+ORD-00197,2024-09-30,North,Lucknow,Electronics,Smartwatch,Pari Singh,3,6999,25633.18,In-store
+ORD-00176,2025-02-02,North,Jaipur,Electronics,Wireless Earbuds,Kabir Verma,1,3499,3756.58,In-store
