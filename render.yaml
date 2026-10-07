@@ -11,3 +11,7 @@ services:
         sync: false
       - key: OPENROUTER_API_KEY
         sync: false
+      - key: ALLOWED_ORIGINS
+        value: https://your-site.netlify.app
+      - key: ALLOW_KEY_OVERRIDE
+        value: "false"

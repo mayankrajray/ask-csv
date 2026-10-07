@@ -4,6 +4,7 @@ Spreadsheet Preview, Auto-Dashboard, Data Quality, Forecasting, Executive Report
 from __future__ import annotations
 
 import json
+import logging
 import re
 import time
 import uuid
@@ -29,12 +30,13 @@ app = FastAPI(title="AskCSV", version="1.0.0",
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=config.ALLOWED_ORIGINS,
+    allow_credentials=False,
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type"],
 )
 
+log = logging.getLogger("askcsv")
 sessions: dict[str, dict] = {}
 
 
@@ -149,6 +151,8 @@ def get_config():
 @app.post("/api/config/switch")
 def switch_config(body: SwitchConfigBody):
     prov = body.provider.lower().strip()
+    if body.api_key and not config.ALLOW_KEY_OVERRIDE:
+        raise HTTPException(403, "Setting API keys at runtime is disabled on this server.")
     if prov not in ("gemini", "openrouter", "demo", "auto"):
         raise HTTPException(400, "Invalid provider. Choose 'gemini', 'openrouter', or 'demo'.")
 
@@ -287,13 +291,8 @@ def new_chat(body: NewChatBody):
 
 @app.get("/api/schema/{sid}/{table}")
 def schema(sid: str, table: str):
-    sess = sessions.get(sid)
-    if not sess:
-        raise HTTPException(404, "Unknown session.")
-    try:
-        return {"ok": True, "profile": sess["engine"].profile(table)[0]}
-    except Exception:
-        raise HTTPException(404, f"Unknown table '{table}'.")
+    engine = _engine_for(sid, table)
+    return {"ok": True, "profile": engine.profile(table)[0]}
 
 
 @app.get("/api/preview/{sid}/{table}")
@@ -317,54 +316,60 @@ def preview(sid: str, table: str, limit: int = 500, offset: int = 0):
             "schema": schema,
             "rows": clean_rows,
         }
-    except Exception as e:
-        raise HTTPException(500, f"Error generating preview: {e}")
+    except Exception:
+        log.exception("Preview failed")
+        raise HTTPException(500, "Preview failed. See server logs for details.")
+
+
+def _engine_for(sid: str, table: str) -> DataEngine:
+    sess = sessions.get(sid)
+    if not sess:
+        raise HTTPException(404, "Unknown session.")
+    if table not in sess["engine"].tables:
+        raise HTTPException(404, f"Unknown table '{table}'.")
+    return sess["engine"]
 
 
 # ------------------------------------------------------------------ Analytics Endpoints
 @app.get("/api/dashboard/{sid}/{table}")
 def api_dashboard(sid: str, table: str):
-    sess = sessions.get(sid)
-    if not sess:
-        raise HTTPException(404, "Unknown session.")
+    engine = _engine_for(sid, table)
     try:
-        return analytics.generate_dashboard(sess["engine"], table)
-    except Exception as e:
-        raise HTTPException(500, f"Dashboard error: {e}")
+        return analytics.generate_dashboard(engine, table)
+    except Exception:
+        log.exception("Dashboard failed")
+        raise HTTPException(500, "Dashboard failed. See server logs for details.")
 
 
 @app.get("/api/quality/{sid}/{table}")
 def api_quality(sid: str, table: str):
-    sess = sessions.get(sid)
-    if not sess:
-        raise HTTPException(404, "Unknown session.")
+    engine = _engine_for(sid, table)
     try:
-        return analytics.audit_data_quality(sess["engine"], table)
-    except Exception as e:
-        raise HTTPException(500, f"Quality audit error: {e}")
+        return analytics.audit_data_quality(engine, table)
+    except Exception:
+        log.exception("Quality audit failed")
+        raise HTTPException(500, "Quality audit failed. See server logs for details.")
 
 
 @app.get("/api/forecast/{sid}/{table}")
 def api_forecast(sid: str, table: str, date_col: Optional[str] = None,
                  metric_col: Optional[str] = None, periods: int = 6):
-    sess = sessions.get(sid)
-    if not sess:
-        raise HTTPException(404, "Unknown session.")
+    engine = _engine_for(sid, table)
     try:
-        return analytics.forecast_metric(sess["engine"], table, date_col, metric_col, periods)
-    except Exception as e:
-        raise HTTPException(500, f"Forecasting error: {e}")
+        return analytics.forecast_metric(engine, table, date_col, metric_col, periods)
+    except Exception:
+        log.exception("Forecasting failed")
+        raise HTTPException(500, "Forecasting failed. See server logs for details.")
 
 
 @app.get("/api/report/{sid}/{table}")
 def api_report(sid: str, table: str):
-    sess = sessions.get(sid)
-    if not sess:
-        raise HTTPException(404, "Unknown session.")
+    engine = _engine_for(sid, table)
     try:
-        return analytics.generate_report(sess["engine"], table)
-    except Exception as e:
-        raise HTTPException(500, f"Report generation error: {e}")
+        return analytics.generate_report(engine, table)
+    except Exception:
+        log.exception("Report generation failed")
+        raise HTTPException(500, "Report generation failed. See server logs for details.")
 
 
 @app.get("/api/logs/{sid}")

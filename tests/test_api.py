@@ -81,3 +81,20 @@ def test_switch_requires_key_for_remote_providers(monkeypatch):
     monkeypatch.setattr(config, "OPENROUTER_API_KEY", "")
     r = client.post("/api/config/switch", json={"provider": "openrouter"})
     assert r.status_code == 400
+
+
+def test_unknown_table_is_404():
+    with open(SAMPLE, "rb") as f:
+        sid = client.post("/api/upload",
+                          files=[("files", ("sales.csv", f.read(), "text/csv"))]).json()["session_id"]
+    for route in ("schema", "preview", "dashboard", "quality", "forecast", "report"):
+        r = client.get(f"/api/{route}/{sid}/nope")
+        assert r.status_code == 404, route
+    r = client.get(f'/api/quality/{sid}/sales" OR 1=1 --')
+    assert r.status_code == 404
+
+
+def test_key_override_can_be_disabled(monkeypatch):
+    monkeypatch.setattr(config, "ALLOW_KEY_OVERRIDE", False)
+    r = client.post("/api/config/switch", json={"provider": "openrouter", "api_key": "sk-x"})
+    assert r.status_code == 403

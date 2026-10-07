@@ -77,3 +77,43 @@ def test_sanitizer_casts_date_trunc():
     # already-cast input is left alone
     ok = "SELECT date_trunc('month', CAST(order_date AS DATE)) FROM sales"
     assert _sanitize_duckdb_sql(ok) == ok
+
+
+@pytest.mark.parametrize("q", [
+    "SELECT * FROM read_csv_auto('/etc/passwd')",
+    "SELECT * FROM read_text('/etc/hostname')",
+    "SELECT * FROM glob('/*')",
+    "SELECT * FROM '/etc/passwd'",
+    "SELECT * FROM parquet_scan('x.parquet')",
+])
+def test_guard_rejects_file_readers(q):
+    with pytest.raises(ValueError):
+        validate_readonly(q)
+
+
+def test_guard_ignores_keywords_inside_literals():
+    assert validate_readonly("SELECT * FROM sales WHERE product = 'replace set load'")
+    assert validate_readonly('SELECT "set" FROM sales')
+
+
+def test_engine_blocks_external_access(tmp_path):
+    import duckdb
+    from app.engine import DataEngine
+    secret = tmp_path / "secret.txt"
+    secret.write_text("top secret")
+    eng = DataEngine()
+    eng.load_csv("sales", "data/sales.csv")
+    # bypass the SQL guard on purpose: the connection itself must refuse
+    with pytest.raises(duckdb.Error):
+        eng.con.execute(f"SELECT * FROM read_text('{secret}')").fetchall()
+    with pytest.raises(duckdb.Error):
+        eng.con.execute("SET enable_external_access = true")
+
+
+@pytest.mark.parametrize("q", [
+    "SELECT \"a'b\" FROM sales; DROP TABLE sales; --'",
+    "SELECT 'x\"', 1; DROP TABLE sales; SELECT \"'",
+])
+def test_guard_quote_desync_does_not_hide_second_statement(q):
+    with pytest.raises(ValueError):
+        validate_readonly(q)

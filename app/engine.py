@@ -20,9 +20,17 @@ import pandas as pd
 NUMERIC_HINTS = ("INT", "DOUBLE", "FLOAT", "DECIMAL", "NUMERIC", "HUGEINT")
 
 _COMMENT_RE = re.compile(r"--[^\n]*|/\*.*?\*/", re.S)
+# One alternation so strings and quoted identifiers are consumed in a single left-to-right
+# pass; chained substitutions can be desynchronised by a quote inside the other construct.
+_LITERAL_RE = re.compile(r"'(?:[^']|'')*'" + "|" + r'"(?:[^"]|"")*"')
 _FORBIDDEN_RE = re.compile(
     r"\b(drop|delete|update|insert|create|alter|attach|detach|replace|copy|"
     r"export|import|pragma|install|load|set|call|checkpoint|vacuum|analyze)\b",
+    re.IGNORECASE,
+)
+# File / URL readers: blocked here and again by DuckDB's enable_external_access=false.
+_FILE_ACCESS_RE = re.compile(
+    r"\b(read_\w+|glob|\w+_scan|sniff_csv|duckdb_\w+)\s*\(|\bfrom\s+'|\bjoin\s+'",
     re.IGNORECASE,
 )
 _ALLOWED_STARTS = ("select", "with", "describe", "show", "explain")
@@ -33,14 +41,27 @@ def validate_readonly(query: str) -> str:
     q = _COMMENT_RE.sub(" ", query or "").strip().rstrip(";").strip()
     if not q:
         raise ValueError("Empty SQL query.")
-    if ";" in q:
+    # Inspect structure with literals and quoted identifiers blanked out, so a value such as
+    # 'replace' or a column called "set" is not mistaken for a keyword.
+    bare = _LITERAL_RE.sub(lambda m: "''" if m.group(0)[0] == "'" else '""', q)
+    if ";" in bare:
         raise ValueError("Multiple SQL statements are not allowed.")
-    first = q.split(None, 1)[0].lower()
+    first = bare.split(None, 1)[0].lower()
     if first not in _ALLOWED_STARTS:
         raise ValueError(f"Only read-only queries are allowed (statement starts with '{first.upper()}').")
-    m = _FORBIDDEN_RE.search(q)
+    m = _FORBIDDEN_RE.search(bare)
     if m:
         raise ValueError(f"Forbidden keyword '{m.group(0).upper()}' in query.")
+    if _FILE_ACCESS_RE.search(q):
+        raise ValueError("Reading files or URLs from SQL is not allowed.")
+    # Second opinion from DuckDB's own parser: exactly one statement, and it must be a query.
+    try:
+        stmts = duckdb.extract_statements(q)
+    except duckdb.Error as e:
+        raise ValueError(f"SQL could not be parsed: {e}") from None
+    if len(stmts) != 1 or stmts[0].type not in (
+            duckdb.StatementType.SELECT, duckdb.StatementType.EXPLAIN, duckdb.StatementType.RELATION):
+        raise ValueError("Only a single read-only query is allowed.")
     return q
 
 
@@ -87,22 +108,34 @@ class DataEngine:
     def __init__(self) -> None:
         self.con = duckdb.connect(database=":memory:")
         self._tables: dict[str, str] = {}
+        self._locked = False
+
+    def _lock_down(self) -> None:
+        """Once data is loaded, cut DuckDB off from the filesystem and network."""
+        if self._locked:
+            return
+        self.con.execute("SET enable_external_access = false")
+        self.con.execute("SET lock_configuration = true")
+        self._locked = True
+
+    def require_table(self, table: str) -> str:
+        if table not in self._tables:
+            raise ValueError(f"Unknown table '{table}'. Loaded tables: {self.tables}")
+        return table
 
     # -- loading ---------------------------------------------------------
     def load_csv(self, table: str, path: str) -> None:
-        # Load via read_csv_auto, but check if header needs cleanup
-        safe_path = pathlib.Path(path).as_posix().replace("'", "''")
+        # Parse with pandas (never SQL file readers), tolerating ragged rows.
         try:
             df = pd.read_csv(path)
-            cleaned_df = _clean_dataframe_headers(df)
-            self.con.register(f"_df_{table}", cleaned_df)
-            self.con.execute(f'CREATE OR REPLACE TABLE "{table}" AS SELECT * FROM "_df_{table}"')
         except Exception:
-            self.con.execute(
-                f'CREATE OR REPLACE VIEW "{table}" AS SELECT * FROM read_csv_auto(\'{safe_path}\')'
-            )
+            df = pd.read_csv(path, engine="python", on_bad_lines="skip")
+        cleaned_df = _clean_dataframe_headers(df)
+        self.con.register(f"_df_{table}", cleaned_df)
+        self.con.execute(f'CREATE OR REPLACE TABLE "{table}" AS SELECT * FROM "_df_{table}"')
         self.con.execute(f'SELECT * FROM "{table}" LIMIT 1').fetchall()  # fail fast on bad CSV
         self._tables[table] = path
+        self._lock_down()
 
     def load_excel(self, table_prefix: str, path: str) -> list[str]:
         """Load an Excel workbook (.xlsx, .xls). If multi-sheet, creates a table per sheet."""
@@ -123,6 +156,7 @@ class DataEngine:
             self.con.execute(f'CREATE OR REPLACE TABLE "{tname}" AS SELECT * FROM "_df_{tname}"')
             self._tables[tname] = path
             created_tables.append(tname)
+        self._lock_down()
         if not created_tables:
             raise ValueError(f"Excel file '{path}' contains no data sheets.")
         return created_tables
@@ -153,6 +187,7 @@ class DataEngine:
         """Column-level statistics (nulls, distinct, min/max, top values)."""
         results = []
         for t in ([table] if table else self.tables):
+            self.require_table(t)
             n = self.con.execute(f'SELECT COUNT(*) FROM "{t}"').fetchone()[0]
             cols = []
             for c in self.schema(t)[0]["columns"]:

@@ -24,6 +24,10 @@ OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "openai/gpt-4o-mini").strip()
 # Safety limits
 MAX_ROWS_TO_LLM = int(os.getenv("MAX_ROWS_TO_LLM", "20"))
 MAX_UPLOAD_MB = int(os.getenv("MAX_UPLOAD_MB", "50"))
+ALLOWED_ORIGINS = [o.strip() for o in os.getenv(
+    "ALLOWED_ORIGINS", "http://localhost:8000,http://127.0.0.1:8000").split(",") if o.strip()]
+# When false, API keys cannot be pushed through /api/config/switch (use env vars only).
+ALLOW_KEY_OVERRIDE = os.getenv("ALLOW_KEY_OVERRIDE", "true").strip().lower() in ("1", "true", "yes")
 MAX_TOOL_STEPS = 8          # agent tool-call budget per question
 SESSION_LIMIT = 200         # in-memory sessions kept
 
