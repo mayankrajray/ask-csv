@@ -1,0 +1,407 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AskCSV — Enterprise AI Data Analyst</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%235b4dff'/%3E%3Ctext x='16' y='22' font-size='16' text-anchor='middle' fill='white' font-family='Georgia'%3E%E2%97%88%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/vendor/tabulator.min.css">
+<link rel="stylesheet" href="/css/app.css">
+<script src="/vendor/plotly.min.js"></script>
+<script src="/vendor/tabulator.min.js"></script>
+</head>
+<body>
+
+<div class="nav-backdrop" id="nav-backdrop"></div>
+
+<!-- Left navigation -->
+<aside class="nav" id="nav">
+  <div class="brand">
+    <span class="mark"><span class="material-symbols-outlined">neurology</span></span>
+    <div>
+      <div class="brand-name">AskCSV</div>
+      <div class="brand-sub">Enterprise AI</div>
+    </div>
+  </div>
+
+  <button class="nav-new" id="btn-new-thread" title="Start a new conversation thread">
+    <span><span class="material-symbols-outlined">add</span>New Query Thread</span>
+  </button>
+
+  <nav class="tabs" id="main-nav-tabs">
+    <button class="tab active" data-view="chat" title="Conversational SQL Analyst">
+      <span class="material-symbols-outlined">forum</span>Chat
+    </button>
+    <button class="tab" data-view="upload" title="Upload CSV, XLSX, XLS files">
+      <span class="material-symbols-outlined">upload_file</span>Upload
+    </button>
+    <button class="tab" data-view="viewer" title="Excel-like Spreadsheet Data Grid">
+      <span class="material-symbols-outlined">table_chart</span>Spreadsheet
+      <span class="tab-count" id="table-count-badge" style="display:none;">0</span>
+    </button>
+    <button class="tab" data-view="dashboard" title="Auto-Generated Executive Dashboard">
+      <span class="material-symbols-outlined">dashboard</span>Dashboard
+    </button>
+    <button class="tab" data-view="quality" title="Data Quality Scorecard & Health Audit">
+      <span class="material-symbols-outlined">verified_user</span>Data Quality
+    </button>
+    <button class="tab" data-view="forecast" title="Time-Series Forecasting & Trends">
+      <span class="material-symbols-outlined">trending_up</span>Forecast
+    </button>
+    <button class="tab" data-view="report" title="Generate Executive Summary Report">
+      <span class="material-symbols-outlined">description</span>Report
+    </button>
+    <button class="tab" data-view="observability" title="Query Audit Logs & Model Benchmark">
+      <span class="material-symbols-outlined">monitor_heart</span>Observability
+    </button>
+  </nav>
+
+  <!-- Datasets -->
+  <div class="nav-section">
+    <div class="side-head">
+      <span>Datasets</span>
+      <button id="btn-upload" class="btn small primary" title="Upload CSV / Excel files">
+        <span class="material-symbols-outlined" style="font-size:16px">add</span>Upload
+      </button>
+    </div>
+    <input type="file" id="file-input" multiple accept=".csv,.xlsx,.xls" hidden>
+    <button id="btn-sample" class="btn small ghost">Load sample dataset</button>
+
+    <div id="table-list" class="table-list">
+      <div class="empty-note">No datasets loaded.<br>Upload CSV/XLSX or load sample.</div>
+    </div>
+  </div>
+
+  <div class="nav-foot">
+    <button id="btn-reset" class="btn small subtle" title="Clear cached dataset and start over">
+      <span class="material-symbols-outlined" style="font-size:16px">delete</span>Reset Cache
+    </button>
+  </div>
+</aside>
+
+<div class="frame">
+  <header class="topbar">
+    <button class="nav-toggle" id="btn-nav-toggle" aria-label="Open navigation">
+      <span class="material-symbols-outlined">menu</span>
+    </button>
+    <div>
+      <div class="page-title" id="page-title">Chat</div>
+      <div class="page-sub">Enterprise AI Data Analyst</div>
+    </div>
+    <div class="top-actions">
+      <div class="active-pill hidden" id="active-pill">
+        <span class="dot"></span>
+        <b id="active-pill-name"></b>
+        <span class="st">Ready</span>
+      </div>
+      <button class="btn small ghost" id="btn-toggle-profile" title="Toggle Data Inspector">
+        <span class="material-symbols-outlined" style="font-size:16px">right_panel_open</span>Inspector
+      </button>
+      <button class="mode-pill-btn" id="btn-api-switch" title="Click to switch AI Provider / Model">
+        <span class="mode-dot" id="mode-dot">●</span>
+        <span id="mode-label">Connecting…</span>
+        <span class="material-symbols-outlined mode-caret">settings</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="shell">
+
+  <!-- Center Column: Switchable Views -->
+  <main class="center-col">
+    
+    <!-- 1. Welcome Screen (shown in Chat tab when no datasets loaded) -->
+    <section id="welcome" class="welcome">
+      <h1>Talk to your data.</h1>
+      <p class="lede">Upload CSV or Excel files, then ask questions in plain English.
+        AskCSV writes DuckDB SQL, charts trends, flags anomalies, forecasts metrics, and shows its reasoning every step of the way.</p>
+      
+      <div class="dropzone" id="dropzone">
+        <div class="dz-icon"><span class="material-symbols-outlined">folder_open</span></div>
+        <div class="dz-title">Drop CSV, XLSX, or XLS files here</div>
+        <div class="dz-sub">or click to browse · supports multi-sheet workbooks · up to 50 MB each</div>
+      </div>
+      
+      <div class="welcome-features">
+        <div class="wf-item">
+          <span class="wf-icon material-symbols-outlined">bolt</span>
+          <div><b>In-Process DuckDB</b><br><small>Zero latency SQL views over CSV/Excel</small></div>
+        </div>
+        <div class="wf-item">
+          <span class="wf-icon material-symbols-outlined">smart_toy</span>
+          <div><b>Multi-Provider AI</b><br><small>Switch between Gemini &amp; OpenRouter</small></div>
+        </div>
+        <div class="wf-item">
+          <span class="wf-icon material-symbols-outlined">insights</span>
+          <div><b>Instant Dashboards</b><br><small>Auto KPIs, forecasts &amp; quality checks</small></div>
+        </div>
+      </div>
+
+      <div class="chips" id="welcome-chips"></div>
+    </section>
+
+    <!-- 2. Chat View -->
+    <section id="chat" class="chat hidden">
+      <div class="chat-top-header">
+        <div class="chat-title-group">
+          <span class="chat-active-dot">●</span>
+          <span class="chat-title-text">Conversation Session</span>
+          <span class="chat-context-badge">Context Active</span>
+        </div>
+        <div class="chat-top-actions">
+          <button id="btn-new-chat" class="btn small primary" title="Clear conversation context and start a new chat thread">New Chat</button>
+          <button id="btn-clear-chat" class="btn small ghost" title="Clear current message history on screen">Clear Chat</button>
+        </div>
+      </div>
+      <div id="chat-messages-container" class="chat-messages-container"></div>
+    </section>
+
+    <!-- 3. Dedicated Upload Tab View -->
+    <section id="view-upload" class="view-upload hidden">
+      <div class="view-header">
+        <div>
+          <h2>Upload &amp; Manage Datasets</h2>
+          <p class="view-sub">Supports <b>.CSV</b>, <b>.XLSX</b>, and <b>.XLS</b> files. Multi-sheet Excel files automatically import as separate DuckDB tables.</p>
+        </div>
+        <div class="view-header-actions">
+          <button id="btn-upload-page-action" class="btn primary">Browse Files (.csv, .xlsx, .xls)</button>
+          <button id="btn-sample-page-action" class="btn ghost">Load Sample Dataset</button>
+        </div>
+      </div>
+
+      <div class="dropzone upload-main-dropzone" id="dropzone-upload-tab">
+        <div class="dz-icon"><span class="material-symbols-outlined">upload</span></div>
+        <div class="dz-title">Drop CSV or Excel (.xlsx, .xls) Files Here</div>
+        <div class="dz-sub">Drag &amp; drop or click to upload single or multiple files</div>
+      </div>
+
+      <div class="upload-datasets-section">
+        <div class="section-title">Loaded Tables in In-Memory Session</div>
+        <div id="upload-tables-container" class="upload-tables-container">
+          <div class="empty-note">No datasets uploaded yet. Upload a CSV/XLSX file or load the sample above.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. Dedicated Spreadsheet View -->
+    <section id="view-viewer" class="view-viewer hidden">
+      <div class="viewer-topbar">
+        <div class="table-selector-group">
+          <label class="selector-label">Table:</label>
+          <div id="viewer-table-pills" class="viewer-table-pills"></div>
+        </div>
+        
+        <div class="viewer-actions">
+          <div class="search-box">
+            <span class="search-icon"><span class="material-symbols-outlined" style="font-size:18px">search</span></span>
+            <input type="text" id="viewer-search-input" placeholder="Search grid cells…" />
+          </div>
+          <select id="viewer-page-size" class="viewer-select" title="Rows per page">
+            <option value="25">25 rows</option>
+            <option value="50" selected>50 rows</option>
+            <option value="100">100 rows</option>
+            <option value="250">250 rows</option>
+            <option value="500">500 rows</option>
+          </select>
+          <button id="btn-export-csv" class="btn small ghost" title="Download CSV">Export CSV</button>
+          <button id="btn-viewer-ask" class="btn small primary">Ask in Chat</button>
+        </div>
+      </div>
+
+      <div class="viewer-stats-bar" id="viewer-stats-bar">
+        <span id="viewer-stats-text">Loading table data…</span>
+        <span id="viewer-cache-indicator" class="cache-badge">Cached</span>
+      </div>
+
+      <!-- Interactive Spreadsheet Grid Container -->
+      <div class="spreadsheet-wrapper">
+        <div id="spreadsheet-grid" class="spreadsheet-grid"></div>
+      </div>
+    </section>
+
+    <!-- 5. Dedicated Auto-Dashboard View -->
+    <section id="view-dashboard" class="view-dashboard hidden">
+      <div class="view-header">
+        <div>
+          <h2>Executive Dashboard</h2>
+          <p class="view-sub">Instant auto-generated KPI scorecards and visual breakdown charts.</p>
+        </div>
+        <div class="table-selector-group">
+          <label class="selector-label">Table:</label>
+          <div id="dashboard-table-pills" class="viewer-table-pills"></div>
+        </div>
+      </div>
+      <div id="dashboard-kpis-row" class="kpis-grid"></div>
+      <div id="dashboard-charts-grid" class="dashboard-charts-grid"></div>
+    </section>
+
+    <!-- 6. Dedicated Data Quality View -->
+    <section id="view-quality" class="view-quality hidden">
+      <div class="view-header">
+        <div>
+          <h2>Data Quality &amp; Health Scorecard</h2>
+          <p class="view-sub">Audit missing values, duplicate records, outliers, and column health.</p>
+        </div>
+        <div class="table-selector-group">
+          <label class="selector-label">Table:</label>
+          <div id="quality-table-pills" class="viewer-table-pills"></div>
+        </div>
+      </div>
+      <div id="quality-content-area" class="quality-content-area"></div>
+    </section>
+
+    <!-- 7. Dedicated Time-Series Forecasting View -->
+    <section id="view-forecast" class="view-forecast hidden">
+      <div class="view-header">
+        <div>
+          <h2>Time-Series Forecasting &amp; Trends</h2>
+          <p class="view-sub">Linear trend modeling &amp; 95% confidence projection bands over historical data.</p>
+        </div>
+        <div class="table-selector-group">
+          <label class="selector-label">Table:</label>
+          <div id="forecast-table-pills" class="viewer-table-pills"></div>
+        </div>
+      </div>
+      <div id="forecast-content-area" class="forecast-content-area"></div>
+    </section>
+
+    <!-- 8. Dedicated Executive Report View -->
+    <section id="view-report" class="view-report hidden">
+      <div class="view-header">
+        <div>
+          <h2>Executive Data Summary Report</h2>
+          <p class="view-sub">Generate and export structured business intelligence reports.</p>
+        </div>
+        <div class="view-header-actions">
+          <button id="btn-download-report-md" class="btn primary">Download Markdown Report</button>
+          <button id="btn-print-report" class="btn ghost">Print / Save PDF</button>
+        </div>
+      </div>
+      <div class="table-selector-group" style="margin-bottom:14px;">
+        <label class="selector-label">Table:</label>
+        <div id="report-table-pills" class="viewer-table-pills"></div>
+      </div>
+      <div id="report-content-area" class="report-content-area"></div>
+    </section>
+
+    <!-- 9. Dedicated Observability & Evaluation View -->
+    <section id="view-observability" class="view-observability hidden">
+      <div class="view-header">
+        <div>
+          <h2>Observability &amp; Model Benchmark</h2>
+          <p class="view-sub">Live query audit logs, tool execution latencies, and provider evaluation metrics.</p>
+        </div>
+        <button id="btn-refresh-logs" class="btn small ghost">Refresh Logs</button>
+      </div>
+      <div id="observability-content-area" class="observability-content-area"></div>
+    </section>
+
+    <!-- Chat composer (sticky at bottom in chat view) -->
+    <form id="composer" class="composer hidden" autocomplete="off">
+      <div class="composer-meta">
+        <span class="meta-pill mono"><span class="material-symbols-outlined">table_chart</span><span id="composer-scope">SCOPE: —</span></span>
+        <span class="meta-pill"><span class="material-symbols-outlined">bolt</span><span id="composer-model">—</span></span>
+      </div>
+      <input id="input" type="text" placeholder="Ask anything about your data, correlations, SQL, or anomalies…" />
+      <button type="submit" class="send" title="Send message"><span>Query</span><span class="material-symbols-outlined" style="font-size:18px">send</span></button>
+    </form>
+  </main>
+
+  <!-- Right sidebar: data profile & schema preview -->
+  <aside class="sidebar right" id="sidebar-right">
+    <div class="side-head">
+      <span>Data Inspector</span>
+      <div style="display:flex;align-items:center;gap:6px;">
+        <span id="active-table-badge" class="badge"></span>
+        <button class="icon-btn-subtle" id="btn-close-profile" title="Hide Data Inspector"><span class="material-symbols-outlined" style="font-size:18px">close</span></button>
+      </div>
+    </div>
+    <div id="profile-body">
+      <div class="empty-note">Upload a dataset to inspect its schema, types, and summary statistics.</div>
+    </div>
+  </aside>
+
+  </div>
+</div>
+
+<!-- AI Provider & Model Switcher Modal -->
+<div id="modal-api-switch" class="modal-backdrop hidden" style="display:none;">
+  <div class="modal-card">
+    <div class="modal-header">
+      <div class="modal-title">AI Provider &amp; Model Settings</div>
+      <button class="modal-close" id="btn-close-modal" aria-label="Close modal">✕</button>
+    </div>
+    
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Select AI Provider</label>
+        <div class="provider-toggle-group">
+          <button type="button" class="provider-btn" data-provider="openrouter" id="prov-btn-openrouter">
+            <span class="p-icon material-symbols-outlined">language</span>
+            <div class="p-info">
+              <b>OpenRouter</b>
+              <small>GPT-4o, Claude, Llama, etc.</small>
+            </div>
+          </button>
+
+          <button type="button" class="provider-btn" data-provider="gemini" id="prov-btn-gemini">
+            <span class="p-icon material-symbols-outlined">auto_awesome</span>
+            <div class="p-info">
+              <b>Google Gemini</b>
+              <small>Gemini 3.6 / 3.7 Flash</small>
+            </div>
+          </button>
+
+          <button type="button" class="provider-btn" data-provider="demo" id="prov-btn-demo">
+            <span class="p-icon material-symbols-outlined">terminal</span>
+            <div class="p-info">
+              <b>Offline Demo</b>
+              <small>Rule-based SQL analyst</small>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <div id="provider-details-form">
+        <!-- Model selector -->
+        <div class="form-group" id="group-model-select">
+          <label class="form-label" for="input-model">Model</label>
+          <div class="input-with-presets">
+            <input type="text" id="input-model" class="form-input" placeholder="e.g. gemini-3.6-flash or openai/gpt-4o-mini" />
+            <select id="select-model-presets" class="form-select">
+              <option value="">-- Choose Preset Model --</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- API Key input -->
+        <div class="form-group" id="group-api-key">
+          <label class="form-label" for="input-api-key">API Key (Optional override)</label>
+          <input type="password" id="input-api-key" class="form-input" placeholder="Leave empty to use configured key" />
+          <div class="form-tip" id="api-key-status"></div>
+        </div>
+
+        <!-- Backend Server URL input for Netlify / Remote deployments -->
+        <div class="form-group" id="group-api-base" style="margin-top:6px;padding-top:10px;border-top:1px dashed var(--border-soft);">
+          <label class="form-label" for="input-api-base">Backend API Server URL (for Netlify / Remote Deployments)</label>
+          <input type="text" id="input-api-base" class="form-input" placeholder="e.g. https://your-askcsv-api.onrender.com (or leave blank for /api)" />
+          <div class="form-tip">Leave blank when running locally with FastAPI on port 8000.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button type="button" class="btn ghost" id="btn-cancel-modal">Cancel</button>
+      <button type="button" class="btn primary" id="btn-save-modal">Apply &amp; Switch</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast hidden"></div>
+<script src="/js/app.js"></script>
+</body>
+</html>
