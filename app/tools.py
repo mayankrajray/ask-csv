@@ -8,9 +8,10 @@ Every tool run by the agent (Gemini or demo mode) goes through ToolBox:
 """
 from __future__ import annotations
 
-import hashlib
 import html
 import time
+import uuid
+from pathlib import Path
 
 import pandas as pd
 
@@ -65,8 +66,15 @@ class ToolBox:
     def __init__(self, engine: DataEngine, session_id: str) -> None:
         self.engine = engine
         self.session_id = session_id
+        if (not isinstance(session_id, str) or not session_id or "/" in session_id or "\\" in session_id
+                or Path(session_id).name != session_id
+                or session_id in (".", "..")):
+            raise ValueError("Invalid session identifier for export storage.")
+        self.export_root = config.EXPORT_DIR.resolve()
         self.export_dir = config.EXPORT_DIR / session_id
-        self.export_dir.mkdir(parents=True, exist_ok=True)
+        if self.export_dir.is_symlink() or (self.export_dir.exists()
+                                             and not self.export_dir.resolve().is_relative_to(self.export_root)):
+            raise ValueError("Export storage path is outside its configured directory.")
 
     # ------------------------------------------------------------------ tools
     def run_sql(self, query: str) -> dict:
@@ -87,12 +95,31 @@ class ToolBox:
             "elapsed_ms": int((time.time() - started) * 1000),
         }
         if n > config.MAX_ROWS_TO_LLM:
-            fname = hashlib.sha1(query.encode()).hexdigest()[:10] + ".csv"
+            try:
+                if self.export_dir.is_symlink():
+                    return {"ok": False, "error": "Export storage is unavailable for this session."}
+                self.export_dir.mkdir(parents=True, exist_ok=True)
+                if not self.export_dir.resolve().is_relative_to(self.export_root):
+                    return {"ok": False, "error": "Export storage is unavailable for this session."}
+            except (OSError, RuntimeError, ValueError):
+                return {"ok": False, "error": "Export storage is unavailable for this session."}
+            existing_exports = [path for path in self.export_dir.glob("*.csv") if path.is_file()]
+            if len(existing_exports) >= config.MAX_EXPORTS_PER_SESSION:
+                return {"ok": False, "error": "This session reached its export limit. Start a new session to export more results."}
+            fname = f"{uuid.uuid4().hex}.csv"
             export_path = self.export_dir / fname
             try:
-                export_path.write_text(df.to_csv(index=False))
+                csv_content = df.to_csv(index=False)
+                current_bytes = sum(path.stat().st_size for path in existing_exports)
+                export_bytes = len(csv_content.encode("utf-8"))
+                if current_bytes + export_bytes > config.MAX_SESSION_EXPORT_MB * 1024 * 1024:
+                    return {"ok": False, "error": "This session reached its generated-file size limit."}
+                export_path.write_text(csv_content, encoding="utf-8")
             except Exception:
-                export_path.unlink(missing_ok=True)
+                try:
+                    export_path.unlink(missing_ok=True)
+                except OSError:
+                    pass
                 return {"ok": False, "error": "Query results were found, but the CSV export could not be created."}
             payload["export"] = f"/api/exports/{self.session_id}/{fname}"
         return payload

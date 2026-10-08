@@ -222,7 +222,8 @@ def test_system_prompt_contains_security_boundaries():
         assert "ignore previous instructions" in prompt.lower()
 
 
-def test_schema_digest_and_sql_text_contain_untrusted_framing(tmp_path):
+def test_schema_digest_and_sql_text_contain_untrusted_framing(tmp_path, monkeypatch):
+    monkeypatch.setattr(config, "EXPORT_DIR", tmp_path / "exports")
     eng = DataEngine()
     # Create a CSV with prompt injection attempt in headers and cell values
     csv_file = tmp_path / "injected.csv"
