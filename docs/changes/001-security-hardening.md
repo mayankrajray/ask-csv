@@ -69,5 +69,5 @@ Offline DemoAgent smoke requests passed: `/api/health` returned 200 in demo mode
 
 ## Git Checkpoint
 
-Commit: PENDING
+Commit: `c4ef9df` (implementation checkpoint)
 Branch: `assignment-final`
