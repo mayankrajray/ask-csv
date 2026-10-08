@@ -14,6 +14,7 @@ from typing import Generator
 import httpx
 
 from . import config
+from .conversation import trim_messages
 from .tools import ToolBox
 
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
@@ -165,6 +166,7 @@ class OpenRouterAgent:
 
     def chat(self, contents: list, message: str) -> Generator[dict, None, None]:
         """Generator of SSE events. Mutates `contents` in place (session messages)."""
+        trim_messages(contents, config.MAX_CONVERSATION_TURNS - 1)
         # Ensure system message is first if not already present
         if not contents or contents[0].get("role") != "system":
             system = SYSTEM_PROMPT.format(schema=self.tb.schema_digest())

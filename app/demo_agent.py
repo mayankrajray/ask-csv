@@ -9,6 +9,8 @@ and keeps the test-suite meaningful without network access.
 from __future__ import annotations
 
 from .agent import stream_tokens
+from . import config
+from .conversation import trim_messages
 from .tools import ToolBox
 
 DEMO_NOTE = ("\n\n*Offline demo mode — set `GEMINI_API_KEY` in `.env` to unlock "
@@ -47,24 +49,39 @@ class DemoAgent:
 
     # ------------------------------------------------------------ handler
     def chat(self, contents: list, message: str):
+        trim_messages(contents, config.MAX_CONVERSATION_TURNS - 1)
+        context = next((item.get("demo_context") for item in reversed(contents)
+                        if item.get("demo_context")), None)
+        outcome = {}
+        contents.append({"role": "user", "content": message})
         m = " ".join(message.lower().split())
+        words = set(m.split())
         yield {"type": "status", "detail": "Analysing…"}
 
-        if "anomal" in m:
-            yield from self._anomalies()
-        elif any(k in m for k in ("trend", "monthly", "by month", "over time", "growth")):
-            yield from self._trend()
-        elif ("sql" in m) or m.startswith("show me the query"):
-            yield from self._sql_request()
-        elif "top" in m and any(k in m for k in ("customer", "client", "buyer")):
-            yield from self._top_customers()
-        elif any(k in m for k in ("underperform", "worst", "lowest")):
-            yield from self._underperformers()
-        elif any(k in m for k in ("region", "area", "zone", "state")) and \
-                any(k in m for k in ("highest", "best", "most", "top", "revenue", "sales")):
-            yield from self._best_region()
-        else:
-            yield from self._generic()
+        try:
+            if context and any(phrase in m for phrase in ("how much", "what was", "what did")) and \
+                    words.intersection({"it", "that", "they", "its", "they're"}):
+                yield from self._region_total_followup(context)
+            elif "anomal" in m:
+                yield from self._anomalies()
+            elif any(k in m for k in ("trend", "monthly", "by month", "over time", "growth")):
+                yield from self._trend()
+            elif ("sql" in m) or m.startswith("show me the query"):
+                yield from self._sql_request()
+            elif "top" in m and any(k in m for k in ("customer", "client", "buyer")):
+                yield from self._top_customers()
+            elif any(k in m for k in ("underperform", "worst", "lowest")):
+                yield from self._underperformers()
+            elif any(k in m for k in ("region", "area", "zone", "state")) and \
+                    any(k in m for k in ("highest", "best", "most", "top", "revenue", "sales")):
+                yield from self._best_region(outcome)
+            else:
+                yield from self._generic()
+        finally:
+            if outcome.get("context"):
+                context = outcome["context"]
+            contents.append({"role": "assistant", "content": "", **(
+                {"demo_context": context} if context else {})})
 
     # ------------------------------------------------------------ answers
     def _run_chart(self, sql: str, chart_type: str, x: str, y: str, title: str):
@@ -111,7 +128,7 @@ class DemoAgent:
                 + DEMO_NOTE)
         yield from stream_tokens(text)
 
-    def _best_region(self):
+    def _best_region(self, outcome=None):
         table, rcol = self._find("region") or self._find("area") or self._find("zone")
         if not rcol:
             yield from self._generic()
@@ -131,11 +148,32 @@ class DemoAgent:
             yield ev
         if rows and rows["rows"]:
             top = rows["rows"][0]
+            if outcome is not None:
+                outcome["context"] = {"kind": "region_total", "table": table,
+                                      "group_column": rcol, "metric_column": vcol,
+                                      "entity": str(top[0])}
             text = (f"**{top[0]}** generated the highest {vcol}: **₹{float(top[1]):,.1f} lakh**, "
                     f"ahead of {', '.join(f'{r[0]} (₹{float(r[1]):,.1f} lakh)' for r in rows['rows'][1:3])}. "
                     f"This comes straight from a `GROUP BY {rcol}` + `SUM({vcol})` query in DuckDB — "
                     f"the SQL is shown above so you can verify it." + DEMO_NOTE)
             yield from stream_tokens(text)
+
+    def _region_total_followup(self, context):
+        table, group_col = context["table"], context["group_column"]
+        metric_col, entity = context["metric_column"], context["entity"]
+        q = lambda value: '"' + value.replace('"', '""') + '"'
+        literal = "'" + entity.replace("'", "''") + "'"
+        sql = (f'SELECT ROUND(SUM({q(metric_col)}) / 100000.0, 2) AS total_lakh '
+               f'FROM {q(table)} WHERE {q(group_col)} = {literal}')
+        r = self.tb.run_sql(sql)
+        if not r["ok"]:
+            yield {"type": "error", "detail": f"SQL failed: {r['error']}"}
+            return
+        self.last_sql = sql
+        yield {"type": "sql", "sql": sql, "rows": r["row_count"], "export": r.get("export")}
+        yield r
+        amount = r["rows"][0][0] if r.get("rows") else 0
+        yield from stream_tokens(f"**{entity}** sold ₹{float(amount or 0):,.1f} lakh in total." + DEMO_NOTE)
 
     def _top_customers(self):
         table, ccol = self._find("customer") or self._find("client") or self._find("buyer")

@@ -29,6 +29,7 @@ ALLOWED_ORIGINS = [o.strip() for o in os.getenv(
 # When false, API keys cannot be pushed through /api/config/switch (use env vars only).
 ALLOW_KEY_OVERRIDE = os.getenv("ALLOW_KEY_OVERRIDE", "true").strip().lower() in ("1", "true", "yes")
 MAX_TOOL_STEPS = 8          # agent tool-call budget per question
+MAX_CONVERSATION_TURNS = 12 # user/assistant turns retained per session
 SESSION_LIMIT = 200         # in-memory sessions kept
 
 for _d in (UPLOAD_DIR, EXPORT_DIR):

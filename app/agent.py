@@ -12,6 +12,7 @@ from __future__ import annotations
 import time
 
 from . import config
+from .conversation import trim_gemini_contents
 from .tools import ToolBox
 
 try:
@@ -118,6 +119,7 @@ class GeminiAgent:
 
     def chat(self, contents: list, message: str):
         """Generator of SSE events. Mutates `contents` in place (session memory)."""
+        trim_gemini_contents(contents, config.MAX_CONVERSATION_TURNS - 1)
         contents.append(types.Content(role="user", parts=[types.Part(text=message)]))
         system = SYSTEM_PROMPT.format(schema=self.tb.schema_digest())
         cfg = types.GenerateContentConfig(
