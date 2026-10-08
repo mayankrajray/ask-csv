@@ -109,6 +109,13 @@ class DataEngine:
         self.con = duckdb.connect(database=":memory:")
         self._tables: dict[str, str] = {}
         self._locked = False
+        self._closed = False
+
+    def close(self) -> None:
+        """Release the session's in-memory DuckDB connection. Safe to call repeatedly."""
+        if not self._closed:
+            self.con.close()
+            self._closed = True
 
     def _lock_down(self) -> None:
         """Once data is loaded, cut DuckDB off from the filesystem and network."""

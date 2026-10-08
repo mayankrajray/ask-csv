@@ -24,6 +24,10 @@ class DemoAgent:
         self.tb = ToolBox(engine, session_id)
         self.last_sql: str | None = None
 
+    def reset_conversation(self) -> None:
+        """Clear agent-local state that belongs to the current conversation."""
+        self.last_sql = None
+
     # ------------------------------------------------------------ helpers
     def _numeric_cols(self, table: str) -> list[str]:
         prof = self.tb.engine.profile(table)[0]

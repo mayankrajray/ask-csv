@@ -103,8 +103,21 @@ def _drop_session(sid: str) -> None:
     sess = sessions.pop(sid, None)
     if not sess:
         return
+    engine = sess.get("engine")
+    contents = sess.get("contents")
+    if isinstance(contents, list):
+        contents.clear()
+    query_logs = sess.get("query_logs")
+    if isinstance(query_logs, list):
+        query_logs.clear()
+    sess["api_key"] = None
+    sess["provider"] = None
+    sess["model"] = None
+    sess["agent"] = None
+    sess["engine"] = None
     try:
-        sess["engine"].con.close()
+        if engine is not None:
+            engine.close()
     except Exception:
         pass
     _remove_session_storage(sid)
@@ -166,21 +179,34 @@ def _new_session(provider: str | None = None, model: str | None = None, api_key:
         oldest = min(sessions.values(), key=lambda s: s["created"])
         _drop_session(oldest["id"])
     sid = uuid.uuid4().hex
-    engine = DataEngine()
-    agent = _create_agent(engine, sid, provider, model, api_key)
-    sessions[sid] = {
-        "id": sid,
-        "engine": engine,
-        "agent": agent,
-        "provider": provider or config.mode(),
-        "model": model or config.active_model(),
-        "api_key": api_key,
-        "contents": [],
-        "query_logs": [],
-        "created": time.time(),
-        "last_seen": time.time(),
-    }
-    return sessions[sid]
+    engine = None
+    try:
+        engine = DataEngine()
+        agent = _create_agent(engine, sid, provider, model, api_key)
+        sessions[sid] = {
+            "id": sid,
+            "engine": engine,
+            "agent": agent,
+            "provider": provider or config.mode(),
+            "model": model or config.active_model(),
+            "api_key": api_key,
+            "contents": [],
+            "query_logs": [],
+            "created": time.time(),
+            "last_seen": time.time(),
+        }
+        return sessions[sid]
+    except Exception:
+        if sid in sessions:
+            _drop_session(sid)
+        else:
+            if engine is not None:
+                try:
+                    engine.close()
+                except Exception:
+                    pass
+            _remove_session_storage(sid)
+        raise
 
 
 def _quality(engine: DataEngine, table: str) -> dict:
@@ -269,30 +295,27 @@ def switch_config(body: SwitchConfigBody):
     if not sess:
         raise HTTPException(400, "A valid session_id is required to switch provider configuration.")
 
-    # Provider and key overrides are strictly session-scoped.
-    # Never mutate module-level global configuration (config.LLM_PROVIDER, config.GEMINI_API_KEY, etc.)
-    if sess:
-        if sess.get("provider") != prov:
-            sess["contents"] = []
-        if body.api_key:
-            sess["api_key"] = body.api_key.strip()
-        sess["provider"] = prov
-        sess["model"] = body.model or (
-            config.GEMINI_MODEL if prov == "gemini" else config.OPENROUTER_MODEL if prov == "openrouter" else "offline-demo"
-        )
-        sess["agent"] = _create_agent(sess["engine"], body.session_id, prov, sess["model"], sess.get("api_key"))
+    # Provider and key overrides are strictly session-scoped. Build the new agent
+    # before changing live session state so a failed switch leaves it usable.
+    new_key = body.api_key.strip() if body.api_key else sess.get("api_key")
+    new_model = body.model or (
+        config.GEMINI_MODEL if prov == "gemini" else config.OPENROUTER_MODEL if prov == "openrouter" else "offline-demo"
+    )
+    try:
+        new_agent = _create_agent(sess["engine"], body.session_id, prov, new_model, new_key)
+    except Exception:
+        raise HTTPException(503, "The requested provider could not be initialized; existing session settings were kept.") from None
+    if sess.get("provider") != prov:
+        sess["contents"].clear()
+    sess["api_key"] = new_key
+    sess["provider"] = prov
+    sess["model"] = new_model
+    sess["agent"] = new_agent
 
-        mode = sess["provider"]
-        active_model = sess["model"]
-        gemini_configured = bool(config.GEMINI_API_KEY or (sess.get("provider") == "gemini" and sess.get("api_key")))
-        openrouter_configured = bool(config.OPENROUTER_API_KEY or (sess.get("provider") == "openrouter" and sess.get("api_key")))
-    else:
-        mode = prov if prov != "auto" else config.mode()
-        active_model = body.model or (
-            config.GEMINI_MODEL if prov == "gemini" else config.OPENROUTER_MODEL if prov == "openrouter" else "offline-demo"
-        )
-        gemini_configured = bool(config.GEMINI_API_KEY or (body.api_key and prov == "gemini"))
-        openrouter_configured = bool(config.OPENROUTER_API_KEY or (body.api_key and prov == "openrouter"))
+    mode = sess["provider"]
+    active_model = sess["model"]
+    gemini_configured = bool(config.GEMINI_API_KEY or (sess.get("provider") == "gemini" and sess.get("api_key")))
+    openrouter_configured = bool(config.OPENROUTER_API_KEY or (sess.get("provider") == "openrouter" and sess.get("api_key")))
 
     return {
         "ok": True,
@@ -385,7 +408,12 @@ async def upload(files: list[UploadFile] = File(...)):
             _drop_session(sess["id"])
         raise HTTPException(500, "Upload processing failed. Check the file format and try again.")
 
-    return {"session_id": sess["id"], "tables": _table_payload(sess["engine"])}
+    try:
+        return {"session_id": sess["id"], "tables": _table_payload(sess["engine"])}
+    except Exception:
+        if sess and sess["id"] in sessions:
+            _drop_session(sess["id"])
+        raise HTTPException(500, "Upload processing failed while preparing the dataset summary.") from None
 
 
 @app.post("/api/sample")
@@ -393,9 +421,15 @@ def load_sample():
     p = config.DATA_DIR / "sales.csv"
     if not p.exists():
         raise HTTPException(500, "Sample dataset missing from data/.")
-    sess = _new_session()
-    sess["engine"].load_csv("sales", str(p))
-    return {"session_id": sess["id"], "tables": _table_payload(sess["engine"])}
+    sess = None
+    try:
+        sess = _new_session()
+        sess["engine"].load_csv("sales", str(p))
+        return {"session_id": sess["id"], "tables": _table_payload(sess["engine"])}
+    except Exception:
+        if sess and sess["id"] in sessions:
+            _drop_session(sess["id"])
+        raise HTTPException(500, "The sample dataset could not be loaded.") from None
 
 
 class ChatBody(BaseModel):
@@ -415,11 +449,16 @@ def chat(body: ChatBody):
 
     # Update agent dynamically if provider / model passed in chat request
     if body.provider and (body.provider != sess.get("provider") or (body.model and body.model != sess.get("model"))):
+        new_model = body.model or config.active_model()
+        try:
+            new_agent = _create_agent(sess["engine"], body.session_id, body.provider, new_model, sess.get("api_key"))
+        except Exception:
+            raise HTTPException(503, "The requested provider could not be initialized; existing session settings were kept.") from None
         if body.provider != sess.get("provider"):
-            sess["contents"] = []
-        sess["agent"] = _create_agent(sess["engine"], body.session_id, body.provider, body.model, sess.get("api_key"))
+            sess["contents"].clear()
+        sess["agent"] = new_agent
         sess["provider"] = body.provider
-        sess["model"] = body.model or config.active_model()
+        sess["model"] = new_model
 
     start_time = time.time()
 
@@ -453,7 +492,10 @@ def new_chat(body: NewChatBody):
     sess = _session_for(body.session_id)
     if not sess:
         raise HTTPException(404, "Unknown session.")
-    sess["contents"] = []
+    sess["contents"].clear()
+    reset_conversation = getattr(sess["agent"], "reset_conversation", None)
+    if callable(reset_conversation):
+        reset_conversation()
     return {"ok": True, "session_id": body.session_id, "message": "Conversation context reset."}
 
 
