@@ -1,253 +1,151 @@
-# AskCSV
+# AskCSV — AI Data Analyst
 
-**Ask your spreadsheets questions. Get SQL, charts and evidence back.**
+AskCSV is a browser-based data analyst for CSV and Excel workbooks. Upload one or more files, ask questions in natural language, and inspect the SQL, results, charts, and analytical views. It supports an offline DemoAgent as well as Gemini and OpenRouter providers.
 
-AskCSV is a web app where you drop in CSV or Excel files and chat with them. A language model plans the analysis, DuckDB runs the SQL, and you see the query, the numbers, a chart and a short explanation. The same data also feeds a one-click dashboard, a data-health audit, a trend forecast and a printable report.
+This repository is prepared as an AI Engineer assignment submission. The application uses a vanilla HTML/CSS/JavaScript frontend served by FastAPI; it has no npm build step.
 
-It was built as a submission for the **Digital Back Office Ltd. AI Engineer assignment**.
+## Key features
 
-![AskCSV answering a revenue question with SQL and a chart](screenshot/chat.png)
+- CSV, XLS, and XLSX ingestion; workbook sheets become separate tables where supported.
+- Multiple datasets in a session, including SQL joins across tables.
+- Natural-language analysis through Gemini, OpenRouter, or the deterministic offline DemoAgent.
+- Bounded multi-turn conversation context and streamed chat events (Server-Sent Events).
+- DuckDB SQL analysis with read-only validation and external file/network access disabled.
+- Dashboard summaries, data-quality checks, IQR/z-score anomaly detection, linear-trend forecasting, chart specifications, reports, and CSV result exports.
+- Session-scoped provider configuration, upload/export limits, file ownership, and deterministic evaluation tests.
 
----
-
-## Contents
-
-1. [Tour of the app](#tour-of-the-app)
-2. [How it maps to the brief](#how-it-maps-to-the-brief)
-3. [Run it](#run-it)
-4. [Choosing an AI provider](#choosing-an-ai-provider)
-5. [How it works](#how-it-works)
-6. [Repository map](#repository-map)
-7. [HTTP API](#http-api)
-8. [Sample data](#sample-data)
-9. [Safety model and limits](#safety-model-and-limits)
-
----
-
-## Tour of the app
-
-**Start** — drop files or load the bundled sample. Works with no API key.
-
-![Home](screenshot/home.png)
-
-**Datasets** — several files at once; each Excel sheet becomes its own table.
-
-![Upload](screenshot/upload.png)
-
-**Chat** — streaming answers, collapsible SQL, interactive charts, and follow-up questions that remember context (see the image at the top).
-
-**Anomalies** — outliers per numeric column with the allowed range, mean, spread and example rows.
-
-![Anomalies](screenshot/anomalies.png)
-
-**Dashboard** — headline numbers and breakdown charts generated from the table's columns.
-
-![Dashboard](screenshot/dashboard.png)
-
-**Data quality** — a 0–100 health score, missing values, duplicates and a per-column matrix.
-
-![Quality](screenshot/data-quality.png)
-
-**Forecast** — pick a date and a metric; get a trend line with a confidence band.
-
-![Forecast](screenshot/forecast.png)
-
-**Spreadsheet** — sortable, searchable, paginated view of any loaded table.
-
-![Grid](screenshot/spreadsheet.png)
-
-**Report** — a written summary you can download as Markdown or print to PDF.
-
-![Report](screenshot/report.png)
-
-**Observability** — every SQL statement the agent ran, with row counts and timings.
-
-![Logs](screenshot/observability.png)
-
-**Provider settings** — switch between OpenRouter, Gemini and the offline analyst.
-
-![Settings](screenshot/settings.png)
-
-**On a phone** — the navigation becomes a slide-out drawer.
-
-<img src="screenshot/mobile.png" alt="Mobile layout" width="280">
-
-> A short screen recording is not included yet. Drop one at `screenshot/demo.mp4` and link it here.
-
----
-
-## How it maps to the brief
-
-**Required**
-
-| Brief item | Where it lives |
-|---|---|
-| Upload and validate CSVs | `/api/upload` checks extension and size (50 MB default), repairs banner-style header rows, and handles multi-sheet Excel. |
-| Natural-language questions | Agent loop with tool calling over OpenRouter or Gemini. |
-| Insights and summaries | The model is instructed to aggregate first and quote only returned numbers; the Report view adds a written overview. |
-| Charts | `build_chart` returns Plotly specs: bar, line, area, scatter, pie, donut, histogram. |
-| SQL and/or Pandas | SQL, always shown beside the answer. There is no Pandas code generation. |
-| Anomalies with reasons | IQR or z-score scan, reported with bounds and sample rows. |
-| Explained reasoning | Live "running tool…" status, visible SQL, and a plain-language rationale. |
-| Conversation memory | Per-session message history; *New Query Thread* clears it without unloading data. |
-
-**Optional extras**
-
-| Extra | State |
-|---|---|
-| Multi-file analysis | Done. All tables share one DuckDB session, so joins work. |
-| Dashboard | Done. |
-| Data-quality checks | Done. |
-| Forecasting | Done, as a linear trend. |
-| Agentic workflow | Done. Up to 8 tool steps, with SQL errors fed back so the model can repair its query. |
-| Tool calling | Done: `run_sql`, `build_chart`, `detect_anomalies`, `profile_schema`. |
-| Streaming | Done, over Server-Sent Events. |
-| Report export | Done: Markdown, print/PDF, and CSV for large results. |
-| Logging and observability | Done, per session. |
-| Caching | Partial: tables stay loaded per session and the browser caches previews. No LLM-response cache. |
-| Authentication | Not done. See [Safety model](#safety-model-and-limits). |
-| Semantic search | Not done. |
-| Evaluation harness | Not done. |
-
-**Questions it handles out of the box:** highest-revenue region, monthly sales trend, underperforming products, top five customers, "generate SQL for this", and "detect anomalies".
-
----
-
-## Run it
-
-### With Python
-
-```bash
-git clone https://github.com/mayankrajray/ask-csv.git
-cd ask-csv
-python -m venv .venv
-source .venv/bin/activate          # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-cp .env.example .env               # optional: add a provider key
-uvicorn app.main:app --reload
-```
-
-Open <http://localhost:8000>.
-
-### With Docker
-
-```bash
-docker compose up --build
-```
-
-### Tests
-
-```bash
-pip install -r requirements-dev.txt
-pytest
-```
-
----
-
-## Choosing an AI provider
-
-Set values in `.env` or use the settings dialog (the gear in the top bar).
-
-| Provider | Variables | Notes |
-|---|---|---|
-| OpenRouter | `OPENROUTER_API_KEY`, `OPENROUTER_MODEL` | Any tool-capable model, e.g. `openai/gpt-4o-mini`. |
-| Google Gemini | `GEMINI_API_KEY`, `GEMINI_MODEL` | Uses native function calling. |
-| Offline | none | A rule-based analyst for the example questions; useful for demos and tests. |
-
-Choosing OpenRouter or Gemini without a key is rejected with a clear error rather than silently falling back to the offline analyst.
-
----
-
-## How it works
+## Architecture
 
 ```mermaid
-flowchart LR
-  B["Browser app"] -->|"upload, chat, views"| API["FastAPI"]
-  API -->|"SSE events"| B
-  API --> SES["Session<br/>DuckDB + chat history"]
-  API --> AGT["Agent<br/>OpenRouter / Gemini / offline"]
-  AGT -->|"tool calls"| TB["Toolbox"]
-  TB --> GRD["SQL guard"]
-  GRD --> DB[("DuckDB<br/>in-memory tables")]
-  TB --> ANM["Anomaly scan"]
-  TB --> CHT["Chart builder"]
-  API --> ANL["Dashboard · quality<br/>forecast · report"]
-  ANL --> DB
+flowchart TD
+  Browser[Browser: HTML / CSS / JavaScript] <-->|REST + SSE| API[FastAPI]
+  API --> SM[In-memory session manager]
+  SM --> Agent[Agent interface]
+  Agent --> Gemini[Gemini]
+  Agent --> OR[OpenRouter]
+  Agent --> Demo[Offline DemoAgent]
+  Agent --> TB[ToolBox]
+  TB --> Guard[SQL validation + DuckDB access lockdown]
+  Guard --> DB[(Per-session DuckDB / Pandas data)]
+  DB --> Files[Uploaded CSV / XLS / XLSX data]
+  TB --> Analytics[Dashboard · Quality · Anomalies · Forecast · Charts · Reports · Exports]
+  Analytics --> DB
+  API --> Boundaries[Session ownership · upload bounds · export ownership · bounded history]
 ```
 
-**One question, step by step**
+See [architecture documentation](docs/architecture.md) for the component and security-boundary diagrams.
 
-1. The browser posts the message to `/api/chat`.
-2. The agent receives the message plus a digest of every loaded table's schema.
-3. The model calls tools. `run_sql` goes through the guard and then DuckDB; failures come back as text so the model can correct itself.
-4. Only the first 20 rows of any result are shown to the model; the full result is saved as a downloadable CSV.
-5. The server streams status, SQL, chart and anomaly events, then the answer text, as they happen.
+## Conversation context
 
-**Why SQL instead of retrieval over embeddings:** averages, ranks and growth rates need exact arithmetic over every row, which a database does and a vector search does not.
+Each session retains a bounded recent history (12 turns by default). Gemini and OpenRouter receive provider-appropriate conversation messages; DemoAgent uses the same session’s recent exchanges to resolve supported follow-up references. `/api/chat/new` clears conversation history while keeping that session’s datasets. Session state is in memory and is lost on restart.
 
----
+## Analytics methods
 
-## Repository map
+- Anomaly detection uses statistical IQR or z-score rules; it is not machine-learning anomaly detection.
+- Forecasting fits a linear trend and reports a residual-spread band. It does not model seasonality or provide a guarantee of predictive accuracy.
+- Dashboard, quality, chart, and report views use the uploaded data and deterministic application logic.
 
-```
-app/
-  main.py              routes, sessions, SSE streaming
-  config.py            environment settings and limits
-  engine.py            DuckDB wrapper, SQL guard, header repair
-  tools.py             the four agent tools
-  agent.py             Gemini agent
-  openrouter_agent.py  OpenRouter agent
-  demo_agent.py        offline analyst
-  anomalies.py         IQR / z-score detection
-  charts.py            Plotly spec builder
-  analytics.py         dashboard, quality, forecast, report
-frontend/              plain HTML/CSS/JS single-page app (+ vendored Plotly, Tabulator)
-data/                  sample CSV and its generator
-tests/                 engine, guard and API tests
-screenshot/            images used above
-ref/DESIGN.md          visual design spec the UI follows
-```
+## Security and operational limits
 
----
+- Uploads are streamed and bounded (50 MB per file by default); default per-session limits are 200 MB total upload, 20 files, 200 MB exports, and 20 exports.
+- Session storage retention defaults to 24 hours; in-memory session capacity defaults to 200. Cleanup is local to this single-process application.
+- Table and SQL validation guard read queries, reject write statements and external readers, and DuckDB external access is disabled.
+- Dataset contents, schema names, and tool outputs are treated as untrusted prompt data. This mitigates prompt injection; no prompt-based defense can guarantee that every malicious instruction will be ignored.
+- Conversation history is bounded to 12 turns; agent tool execution is bounded to 8 steps per question.
+- Generated exports are session-owned and CSV formula-like text is neutralized when exported.
+- Session IDs are bearer capabilities: anyone who obtains one can act as that session. There is no user authentication or account system.
+- Sessions and provider overrides are process-local. Local uploads/exports are not durable shared storage and are not suitable for multi-worker coordination without an external shared session/storage design.
+- `/api/config` reports provider/model and key-presence status, not credential values. Set `ALLOW_KEY_OVERRIDE=false` on deployments where provider keys must come only from the environment.
 
-## HTTP API
+See [environment variables](#environment-configuration) and [known limitations](#known-limitations).
 
-| Route | Method | Purpose |
+## Environment configuration
+
+Copy `.env.example` to `.env` if you want to configure the application. Leave keys empty for offline demo mode. Never commit `.env` or put real credentials in `.env.example`.
+
+| Variable | Default | Purpose |
 |---|---|---|
-| `/api/health`, `/api/config` | GET | Active provider, model and which keys exist |
-| `/api/config/switch` | POST | Change provider, model or key |
-| `/api/upload` | POST | Upload files into a new session |
-| `/api/sample` | POST | Load the sample dataset |
-| `/api/chat` | POST | Ask a question; replies as an SSE stream |
-| `/api/chat/new` | POST | Clear conversation memory |
-| `/api/schema/{sid}/{table}` | GET | Column statistics |
-| `/api/preview/{sid}/{table}` | GET | Paged rows |
-| `/api/dashboard/…`, `/api/quality/…`, `/api/forecast/…`, `/api/report/…` | GET | Analysis views |
-| `/api/logs/{sid}` | GET | SQL audit trail |
-| `/api/exports/{sid}/{file}` | GET | Full CSV of a large result |
+| `LLM_PROVIDER` | `openrouter` | Preferred provider; without configured keys the application uses DemoAgent. |
+| `OPENROUTER_API_KEY` | empty | OpenRouter credential. |
+| `OPENROUTER_MODEL` | `openai/gpt-4o-mini` | OpenRouter model identifier. |
+| `GEMINI_API_KEY` | empty | Google Gemini credential. |
+| `GEMINI_MODEL` | `gemini-3.6-flash` | Gemini model identifier. |
+| `MAX_ROWS_TO_LLM` | `20` | Maximum result rows sent to a provider. |
+| `MAX_UPLOAD_MB` | `50` | Per-file upload limit. |
+| `MAX_SESSION_UPLOAD_MB` | `200` | Aggregate uploaded bytes per session. |
+| `MAX_SESSION_EXPORT_MB` | `200` | Aggregate generated export bytes per session. |
+| `MAX_FILES_PER_SESSION` | `20` | Uploaded file count limit per session. |
+| `MAX_EXPORTS_PER_SESSION` | `20` | Generated export count limit per session. |
+| `SESSION_STORAGE_RETENTION_HOURS` | `24` | Session-associated local storage retention. |
+| `ALLOWED_ORIGINS` | `http://localhost:8000,http://127.0.0.1:8000` | Comma-separated browser origins accepted by CORS. |
+| `ALLOW_KEY_OVERRIDE` | `true` | Allows session provider settings to accept key overrides via the settings API; use `false` for environment-only keys. |
 
----
+`MAX_TOOL_STEPS=8`, `MAX_CONVERSATION_TURNS=12`, and `SESSION_LIMIT=200` are code defaults rather than environment variables.
+
+## Setup and run (Windows PowerShell)
+
+```powershell
+git clone https://github.com/mayankrajray/ask-csv.git
+Set-Location ask-csv
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+python -m pip install -r requirements-dev.txt
+Copy-Item .env.example .env  # Optional; edit only with your own credentials.
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+```
+
+Open <http://127.0.0.1:8000>. The frontend is served by FastAPI; there is no separate frontend build command. Health check: <http://127.0.0.1:8000/api/health>.
+
+Run tests and the deterministic evaluation:
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest -q
+.\.venv\Scripts\python.exe -m pytest tests/evaluation -v
+```
+
+The evaluation contains 12 fixed-fixture deterministic cases. It makes no live LLM calls. Provider integration is mock-tested separately; these checks do not measure live Gemini/OpenRouter answer quality and are not a general benchmark.
+
+## Docker
+
+With Docker Desktop’s Linux engine running:
+
+```powershell
+docker compose build
+docker compose up
+```
+
+Then visit <http://localhost:8000>. Configure provider variables in an untracked `.env` file if needed. The compose service maps the local `data/` directory into the container; sessions remain in memory, and uploads/exports use the container’s local filesystem. The image does not include `.env` or development files in its build context.
 
 ## Sample data
 
-`data/sales.csv` holds 482 retail orders over 14 months (order, region, city, category, product, customer, quantity, price, revenue, channel). It deliberately contains a few revenue spikes, one negative quantity, one blank city and one repeated row so the anomaly and quality screens have something to find. `python data/make_sample_dataset.py` rebuilds it.
+`data/sales.csv` is a small retail dataset for the demo and bundled sample action. The data includes deliberate quality/anomaly examples. Rebuild it with `python data/make_sample_dataset.py`.
 
----
+## 3–5 minute demo flow
 
-## Safety model and limits
+1. Load the sample or upload a CSV, then show the dataset workspace and schema.
+2. Ask which region has the highest sales; show the answer, SQL, and result.
+3. Ask “How much did it sell?” to demonstrate follow-up context.
+4. Open a chart/dashboard and then inspect quality and anomaly views.
+5. Run a forecast on the time-series sample or a date/metric pair.
+6. Upload a second related file, join it with the first, and export the result.
 
-**Protections**
+For screenshots, capture genuine application states: upload/data workspace, question with visible SQL/result, chart/dashboard, quality/anomaly, multi-file/join, and export result. The `screenshot/` directory contains existing project images; replace or supplement them only with real current UI captures. A video can follow the numbered sequence above.
 
-* **Query guard.** Generated SQL must be one read-only statement. The guard blanks out string literals and quoted names before checking keywords, rejects file and URL readers, and asks DuckDB's own parser to confirm there is exactly one query.
-* **Locked database.** After data loads, DuckDB's file and network access is switched off and its settings are frozen, so a missed case still cannot read the host's files. Files are parsed with pandas, never with SQL readers.
-* **Table checks.** Every per-table route verifies the name against the session's tables.
-* **Errors.** Server faults are logged; clients get a generic message.
-* **CORS.** Only `ALLOWED_ORIGINS` (localhost by default), GET and POST, no credentials.
+## Assignment requirement matrix
 
-**Limits you should know about**
+See [docs/ASSIGNMENT_MATRIX.md](docs/ASSIGNMENT_MATRIX.md) for the implementation/evidence mapping and honest status of optional items.
 
-* No user accounts. Sessions are identified by a long random ID, and `/api/config/switch` changes provider settings for the whole server. On shared hosting set `ALLOW_KEY_OVERRIDE=false` and supply keys through environment variables.
-* State is in memory: restarting the server drops sessions, and uploaded files are not purged automatically.
-* The forecast is a straight-line trend, with no seasonality.
-* Offline mode only recognises the example question styles.
-* The page fetches fonts and icons from Google Fonts; without internet, icons render blank.
+## Known limitations
+
+- Session IDs act as bearer capabilities; there is no authentication.
+- Session data/configuration are in memory, and local storage is single-process rather than durable or multi-worker shared storage.
+- Prompt injection defenses are mitigations, not a proof of immunity.
+- DemoAgent handles a defined range of common analysis questions; it is not a general language model.
+- Forecasting is linear projection; anomaly detection is statistical.
+- The 12-case evaluation is deterministic and fixed-fixture; it does not measure live LLM quality.
+- Docker build/runtime verification depends on a running Docker Desktop engine. See the latest integration change record for this environment’s validation result.
+
+## Validation snapshot
+
+Latest verification for this change: **156 tests passed** in the full suite, and **12 evaluation cases passed**. The full suite emitted one existing Starlette/httpx deprecation warning. Details are in [docs/changes/011-integration-submission-readiness.md](docs/changes/011-integration-submission-readiness.md).
