@@ -1,7 +1,9 @@
-from pathlib import Path
 import os
 import time
+from io import StringIO
+from pathlib import Path
 
+import pandas as pd
 import pytest
 from fastapi.testclient import TestClient
 
@@ -101,6 +103,30 @@ def test_empty_and_invalid_queries_do_not_create_export_files(storage_client):
     assert "export" not in empty
     assert invalid["ok"] is False
     assert not list((export_root / sid).glob("*.csv"))
+
+
+def test_csv_exports_neutralize_formula_like_text_but_preserve_numeric_values(storage_client):
+    client, ids, _, _ = storage_client
+    payload = (b"text_value,numeric_value\n"
+               b"=1+1,-2\n"
+               b"+1+1,0\n"
+               b"-1+1,3\n"
+               b'"@SUM(1,1)",4\n'
+               b'" =1+1",5\n')
+    sid = _upload(client, "formula_data.csv", payload)
+    ids.append(sid)
+    exported = _create_export(sid, "SELECT text_value, numeric_value FROM formula_data")
+    content = (sessions[sid]["agent"].tb.export_dir /
+               exported["export"].rsplit("/", 1)[1]).read_text(encoding="utf-8")
+    parsed = pd.read_csv(StringIO(content))
+
+    assert parsed["text_value"].tolist() == ["'=1+1", "'+1+1", "'-1+1", "'@SUM(1,1)", "' =1+1"]
+    assert parsed["numeric_value"].tolist() == [-2, 0, 3, 4, 5]
+
+    header_export = _create_export(sid, 'SELECT text_value AS "=unsafe_header" FROM formula_data')
+    header_content = (sessions[sid]["agent"].tb.export_dir /
+                      header_export["export"].rsplit("/", 1)[1]).read_text(encoding="utf-8")
+    assert pd.read_csv(StringIO(header_content)).columns.tolist() == ["'=unsafe_header"]
 
 
 def test_unsafe_upload_names_stay_in_storage_and_failed_ingestion_cleans_session(storage_client):

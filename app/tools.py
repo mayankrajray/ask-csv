@@ -53,6 +53,13 @@ def _sanitize_duckdb_sql(query: str) -> str:
     return q
 
 
+def _safe_csv_cell(value):
+    """Prefix spreadsheet formula-like text while leaving typed numeric values intact."""
+    if isinstance(value, str) and value.lstrip(" \t\r\n")[:1] in ("=", "+", "-", "@"):
+        return "'" + value
+    return value
+
+
 def md_table(columns: list[str], rows: list[list]) -> str:
     if not columns:
         return "(empty result)"
@@ -109,7 +116,12 @@ class ToolBox:
             fname = f"{uuid.uuid4().hex}.csv"
             export_path = self.export_dir / fname
             try:
-                csv_content = df.to_csv(index=False)
+                safe_df = df.copy()
+                safe_df.columns = [_safe_csv_cell(str(column)) for column in safe_df.columns]
+                for position, dtype in enumerate(safe_df.dtypes):
+                    if dtype == object or pd.api.types.is_string_dtype(dtype):
+                        safe_df.iloc[:, position] = safe_df.iloc[:, position].map(_safe_csv_cell)
+                csv_content = safe_df.to_csv(index=False)
                 current_bytes = sum(path.stat().st_size for path in existing_exports)
                 export_bytes = len(csv_content.encode("utf-8"))
                 if current_bytes + export_bytes > config.MAX_SESSION_EXPORT_MB * 1024 * 1024:
