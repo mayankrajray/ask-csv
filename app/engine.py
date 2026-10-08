@@ -123,9 +123,20 @@ class DataEngine:
             raise ValueError(f"Unknown table '{table}'. Loaded tables: {self.tables}")
         return table
 
+    def _ensure_new_tables(self, names: list[str]) -> None:
+        """Reject duplicate names instead of silently replacing an existing dataset."""
+        existing = {name.casefold() for name in self._tables}
+        seen = set()
+        for name in names:
+            key = name.casefold()
+            if key in existing or key in seen:
+                raise ValueError(f"Table '{name}' is already loaded.")
+            seen.add(key)
+
     # -- loading ---------------------------------------------------------
     def load_csv(self, table: str, path: str) -> None:
         # Parse with pandas (never SQL file readers), tolerating ragged rows.
+        self._ensure_new_tables([table])
         try:
             df = pd.read_csv(path)
         except Exception:
@@ -140,6 +151,14 @@ class DataEngine:
     def load_excel(self, table_prefix: str, path: str) -> list[str]:
         """Load an Excel workbook (.xlsx, .xls). If multi-sheet, creates a table per sheet."""
         excel_data = pd.read_excel(path, sheet_name=None)
+        expected_names = []
+        for sheet_name in excel_data:
+            if len(excel_data) == 1:
+                expected_names.append(table_prefix)
+            else:
+                clean_sheet = re.sub(r"[^0-9a-zA-Z_]+", "_", str(sheet_name)).strip("_").lower()
+                expected_names.append(f"{table_prefix}_{clean_sheet}" if clean_sheet else table_prefix)
+        self._ensure_new_tables(expected_names)
         created_tables = []
         for sheet_name, df in excel_data.items():
             if df.empty:
