@@ -51,7 +51,8 @@ class DemoAgent:
     def chat(self, contents: list, message: str):
         trim_messages(contents, config.MAX_CONVERSATION_TURNS - 1)
         context = next((item.get("demo_context") for item in reversed(contents)
-                        if item.get("demo_context")), None)
+                        if isinstance(item, dict) and item.get("demo_context")), None)
+        context = self._valid_context(context)
         outcome = {}
         contents.append({"role": "user", "content": message})
         m = " ".join(message.lower().split())
@@ -77,23 +78,53 @@ class DemoAgent:
                 yield from self._best_region(outcome)
             else:
                 yield from self._generic()
+        except Exception:
+            yield {"type": "error", "detail": "Offline analysis could not complete. Check the loaded data and try a supported question."}
         finally:
             if outcome.get("context"):
                 context = outcome["context"]
             contents.append({"role": "assistant", "content": "", **(
                 {"demo_context": context} if context else {})})
 
+    def _valid_context(self, context):
+        if not isinstance(context, dict) or context.get("kind") != "region_total":
+            return None
+        fields = ("table", "group_column", "metric_column", "entity")
+        if any(not isinstance(context.get(field), str) or not context[field] for field in fields):
+            return None
+        table = context["table"]
+        if table not in self.tb.engine.tables:
+            return None
+        try:
+            columns = {column["name"] for column in self.tb.engine.schema(table)[0]["columns"]}
+        except Exception:
+            return None
+        if context["group_column"] not in columns or context["metric_column"] not in columns:
+            return None
+        return {key: context[key] for key in fields} | {"kind": "region_total"}
+
     # ------------------------------------------------------------ answers
     def _run_chart(self, sql: str, chart_type: str, x: str, y: str, title: str):
-        r = self.tb.run_sql(sql)
+        try:
+            r = self.tb.run_sql(sql)
+        except Exception:
+            yield {"type": "error", "detail": "The analysis query could not be completed. Check the data schema and try again."}
+            return
         if not r["ok"]:
-            yield {"type": "error", "detail": f"SQL failed: {r['error']}"}
+            yield {"type": "error", "detail": "The analysis query could not be completed. Check the data schema and try again."}
             return
         self.last_sql = sql
         yield {"type": "sql", "sql": sql, "rows": r["row_count"], "export": r.get("export")}
-        chart = self.tb.build_chart(sql, chart_type, x, y, title)
+        try:
+            chart = self.tb.build_chart(sql, chart_type, x, y, title)
+        except Exception:
+            yield {"type": "error", "detail": "The chart could not be generated from the analysis result."}
+            yield r
+            return
         if chart.get("ok"):
             yield {"type": "chart", "spec": chart["spec"]}
+        else:
+            yield {"type": "error", "detail": "The chart could not be generated from the analysis result."}
         yield r
 
     def _trend(self):
@@ -165,9 +196,13 @@ class DemoAgent:
         literal = "'" + entity.replace("'", "''") + "'"
         sql = (f'SELECT ROUND(SUM({q(metric_col)}) / 100000.0, 2) AS total_lakh '
                f'FROM {q(table)} WHERE {q(group_col)} = {literal}')
-        r = self.tb.run_sql(sql)
+        try:
+            r = self.tb.run_sql(sql)
+        except Exception:
+            yield {"type": "error", "detail": "The follow-up analysis could not be completed. Try another question."}
+            return
         if not r["ok"]:
-            yield {"type": "error", "detail": f"SQL failed: {r['error']}"}
+            yield {"type": "error", "detail": "The follow-up query could not be completed. Check the loaded data and try again."}
             return
         self.last_sql = sql
         yield {"type": "sql", "sql": sql, "rows": r["row_count"], "export": r.get("export")}

@@ -88,7 +88,12 @@ class ToolBox:
         }
         if n > config.MAX_ROWS_TO_LLM:
             fname = hashlib.sha1(query.encode()).hexdigest()[:10] + ".csv"
-            (self.export_dir / fname).write_text(df.to_csv(index=False))
+            export_path = self.export_dir / fname
+            try:
+                export_path.write_text(df.to_csv(index=False))
+            except Exception:
+                export_path.unlink(missing_ok=True)
+                return {"ok": False, "error": "Query results were found, but the CSV export could not be created."}
             payload["export"] = f"/api/exports/{self.session_id}/{fname}"
         return payload
 
@@ -125,7 +130,10 @@ class ToolBox:
             return {"ok": False, "error": f"Chart y column '{y}' must be numeric."}
         if not y and df.select_dtypes(include="number").empty:
             return {"ok": False, "error": "Chart query must include a numeric column."}
-        spec = charts.build_spec(df, chart_type, x, y, title)
+        try:
+            spec = charts.build_spec(df, chart_type, x, y, title)
+        except Exception:
+            return {"ok": False, "error": "Chart generation failed for the query result."}
         return {
             "ok": True,
             "chart_id": f"chart-{int(time.time() * 1000)}",
@@ -137,34 +145,102 @@ class ToolBox:
     # ------------------------------------------------------------- dispatch
     def dispatch(self, name: str, args: dict) -> tuple[str, list[dict]]:
         """Execute a tool by name. Returns (text_for_llm, client_events)."""
-        args = args or {}
+        if not isinstance(name, str) or not name:
+            return self._tool_error("Tool call is missing a valid function name.")
+        if not isinstance(args, dict):
+            return self._tool_error("Tool arguments must be an object.")
+        if any(not isinstance(key, str) for key in args):
+            return self._tool_error("Tool argument names must be strings.")
+        try:
+            validation_error = self._validate_tool_args(name, args)
+        except Exception:
+            return self._tool_error("Tool arguments could not be validated against the loaded dataset.")
+        if validation_error:
+            return self._tool_error(validation_error)
+
+        try:
+            if name == "run_sql":
+                r = self.run_sql(args["query"])
+                if not r["ok"]:
+                    return _sql_error_text(r), [{"type": "sql_error", "error":
+                            "The query could not run. Check its syntax, table names, and columns."}]
+                ev = [{"type": "sql", "sql": r["sql"], "rows": r["row_count"], "export": r.get("export")}]
+                return _sql_text(r), ev
+
+            if name == "profile_schema":
+                r = self.profile_schema(args.get("table"))
+                return _schema_text(r), [{"type": "schema", "tables": r["tables"]}]
+
+            if name == "detect_anomalies":
+                r = self.detect_anomalies(args.get("table"), args.get("column"), args.get("method", "iqr"))
+                if not r.get("ok"):
+                    return self._tool_error(r.get("error", "Anomaly detection failed."),
+                                            "Anomaly detection could not complete for this dataset.")
+                ev = {k: v for k, v in r.items() if k != "ok"}
+                return _anomaly_text(r), [{"type": "anomaly", **ev}]
+
+            if name == "build_chart":
+                r = self.build_chart(args["query"], args["chart_type"], args["x"], args["y"], args.get("title"))
+                if not r.get("ok"):
+                    return self._tool_error(r.get("error", "Chart generation failed."),
+                                            "The chart could not be created. Check the query and chart columns.")
+                return (f"Chart created and displayed to the user "
+                        f"({r['row_count']} data points)."), [{"type": "chart", "spec": r["spec"]}]
+
+            return self._tool_error(f"Unknown tool '{name}'. Available: run_sql, profile_schema, detect_anomalies, build_chart.")
+        except Exception as exc:
+            return self._tool_error(f"Tool '{name}' failed ({type(exc).__name__}). Check the input and try again.")
+
+    def _tool_error(self, detail: str, user_detail: str | None = None) -> tuple[str, list[dict]]:
+        return detail, [{"type": "error", "detail": user_detail or detail}]
+
+    def _validate_tool_args(self, name: str, args: dict) -> str | None:
+        allowed = {
+            "run_sql": {"query"},
+            "profile_schema": {"table"},
+            "detect_anomalies": {"table", "column", "method"},
+            "build_chart": {"query", "chart_type", "x", "y", "title"},
+        }
+        if name not in allowed:
+            return "Unknown tool name. Use an available analysis tool."
+        unexpected = set(args) - allowed[name]
+        if unexpected:
+            return f"Unexpected argument for {name}. Remove unsupported fields and try again."
+
         if name == "run_sql":
-            r = self.run_sql(args.get("query", ""))
-            if not r["ok"]:
-                return _sql_error_text(r), [{"type": "sql_error", "error": r["error"]}]
-            ev = [{"type": "sql", "sql": r["sql"], "rows": r["row_count"], "export": r.get("export")}]
-            return _sql_text(r), ev
-
-        if name == "profile_schema":
-            r = self.profile_schema(args.get("table"))
-            return _schema_text(r), [{"type": "schema", "tables": r["tables"]}]
-
-        if name == "detect_anomalies":
-            r = self.detect_anomalies(args.get("table"), args.get("column"), args.get("method", "iqr"))
-            if not r.get("ok"):
-                return r.get("error", "anomaly detection failed"), []
-            ev = {k: v for k, v in r.items() if k != "ok"}
-            return _anomaly_text(r), [{"type": "anomaly", **ev}]
-
-        if name == "build_chart":
-            r = self.build_chart(args.get("query", ""), args.get("chart_type", "bar"),
-                                 args.get("x"), args.get("y"), args.get("title"))
-            if not r.get("ok"):
-                return r.get("error", "chart failed"), []
-            return (f"Chart created and displayed to the user "
-                    f"({r['row_count']} data points)."), [{"type": "chart", "spec": r["spec"]}]
-
-        return f"Unknown tool '{name}'. Available: run_sql, profile_schema, detect_anomalies, build_chart.", []
+            query = args.get("query")
+            if not isinstance(query, str) or not query.strip():
+                return "run_sql requires a non-empty string 'query'."
+        elif name == "profile_schema":
+            table = args.get("table")
+            if table is not None and not isinstance(table, str):
+                return "profile_schema 'table' must be a string."
+            if table and table not in self.engine.tables:
+                return "Unknown table. Check the loaded dataset schema."
+        elif name == "detect_anomalies":
+            table, column, method = args.get("table"), args.get("column"), args.get("method", "iqr")
+            if table is not None and not isinstance(table, str):
+                return "detect_anomalies 'table' must be a string."
+            if column is not None and not isinstance(column, str):
+                return "detect_anomalies 'column' must be a string."
+            if not isinstance(method, str) or method.lower() not in ("iqr", "zscore"):
+                return "detect_anomalies 'method' must be 'iqr' or 'zscore'."
+            if table and table not in self.engine.tables:
+                return "Unknown table. Check the loaded dataset schema."
+            if column:
+                tables = [table] if table else self.engine.tables
+                if not any(column in [c["name"] for c in self.engine.schema(t)[0]["columns"]]
+                           for t in tables):
+                    return "Unknown column. Check the selected table schema."
+        elif name == "build_chart":
+            for key in ("query", "chart_type", "x", "y"):
+                if not isinstance(args.get(key), str) or not args[key].strip():
+                    return f"build_chart requires a non-empty string '{key}'."
+            if args["chart_type"].lower() not in charts.VALID_TYPES:
+                return "Unsupported chart type. Choose a supported chart type."
+            if args.get("title") is not None and not isinstance(args["title"], str):
+                return "build_chart 'title' must be a string."
+        return None
 
     def schema_digest(self) -> str:
         lines = []

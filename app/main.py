@@ -331,8 +331,8 @@ def chat(body: ChatBody):
                         "status": "success",
                     })
                 yield f"data: {json.dumps(ev, default=str)}\n\n"
-        except Exception as e:  # never kill the stream mid-answer
-            yield f"data: {json.dumps({'type': 'error', 'detail': f'{type(e).__name__}: {e}'})}\n\n"
+        except Exception:  # never expose provider/engine exception text to the client
+            yield f"data: {json.dumps({'type': 'error', 'detail': 'The analysis request failed unexpectedly. Your session is still available; please try again.'})}\n\n"
         yield 'data: {"type": "done"}\n\n'
 
     return StreamingResponse(gen(), media_type="text/event-stream",

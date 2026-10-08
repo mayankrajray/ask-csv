@@ -3,10 +3,10 @@
 
 def trim_messages(messages: list, max_turns: int) -> None:
     """Trim role-dict histories in place, retaining the system prompt and recent turns."""
-    system = messages[:1] if messages and messages[0].get("role") == "system" else []
+    system = messages[:1] if messages and isinstance(messages[0], dict) and messages[0].get("role") == "system" else []
     start = len(system)
     user_indexes = [i for i in range(start, len(messages))
-                    if messages[i].get("role") == "user"]
+                    if isinstance(messages[i], dict) and messages[i].get("role") == "user"]
     keep_from = user_indexes[max(0, len(user_indexes) - max(0, max_turns))] \
         if max_turns and len(user_indexes) > max_turns else len(system)
     if max_turns <= 0:
