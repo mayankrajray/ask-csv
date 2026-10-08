@@ -50,34 +50,39 @@ def _sanitize_table(stem: str) -> str:
     return t
 
 
-def _create_agent(engine: DataEngine, sid: str, provider: str | None = None, model: str | None = None):
+def _create_agent(engine: DataEngine, sid: str, provider: str | None = None, model: str | None = None, api_key: str | None = None):
     prov = (provider or config.mode()).lower()
-    if prov == "openrouter" and (config.OPENROUTER_API_KEY or provider == "openrouter"):
-        try:
-            return OpenRouterAgent(engine, sid, model=model or config.OPENROUTER_MODEL)
-        except Exception:
-            return DemoAgent(engine, sid)
-    elif prov == "gemini" and (config.GEMINI_API_KEY or provider == "gemini"):
-        try:
-            return GeminiAgent(engine, sid)
-        except Exception:
-            return DemoAgent(engine, sid)
+    if prov == "openrouter":
+        key = api_key or config.OPENROUTER_API_KEY
+        if key:
+            try:
+                return OpenRouterAgent(engine, sid, api_key=key, model=model or config.OPENROUTER_MODEL)
+            except Exception:
+                return DemoAgent(engine, sid)
+    elif prov == "gemini":
+        key = api_key or config.GEMINI_API_KEY
+        if key:
+            try:
+                return GeminiAgent(engine, sid, api_key=key, model=model or config.GEMINI_MODEL)
+            except Exception:
+                return DemoAgent(engine, sid)
     return DemoAgent(engine, sid)
 
 
-def _new_session(provider: str | None = None, model: str | None = None) -> dict:
+def _new_session(provider: str | None = None, model: str | None = None, api_key: str | None = None) -> dict:
     if len(sessions) >= config.SESSION_LIMIT:
         oldest = min(sessions.values(), key=lambda s: s["created"])
         sessions.pop(oldest["id"], None)
     sid = uuid.uuid4().hex
     engine = DataEngine()
-    agent = _create_agent(engine, sid, provider, model)
+    agent = _create_agent(engine, sid, provider, model, api_key)
     sessions[sid] = {
         "id": sid,
         "engine": engine,
         "agent": agent,
         "provider": provider or config.mode(),
         "model": model or config.active_model(),
+        "api_key": api_key,
         "contents": [],
         "query_logs": [],
         "created": time.time(),
@@ -156,41 +161,52 @@ def switch_config(body: SwitchConfigBody):
     if prov not in ("gemini", "openrouter", "demo", "auto"):
         raise HTTPException(400, "Invalid provider. Choose 'gemini', 'openrouter', or 'demo'.")
 
-    if prov == "gemini" and not (body.api_key or config.GEMINI_API_KEY):
-        raise HTTPException(400, "No Gemini API key configured. Add GEMINI_API_KEY to .env or enter a key.")
-    if prov == "openrouter" and not (body.api_key or config.OPENROUTER_API_KEY):
-        raise HTTPException(400, "No OpenRouter API key configured. Add OPENROUTER_API_KEY to .env or enter a key.")
+    sess = sessions.get(body.session_id) if body.session_id else None
 
+    # Check whether the requested provider has valid credentials
     if prov == "gemini":
-        config.LLM_PROVIDER = "gemini"
-        if body.model:
-            config.GEMINI_MODEL = body.model.strip()
-        if body.api_key:
-            config.GEMINI_API_KEY = body.api_key.strip()
+        has_key = bool(body.api_key or (sess and sess.get("api_key") and sess.get("provider") == "gemini") or config.GEMINI_API_KEY)
+        if not has_key:
+            raise HTTPException(400, "No Gemini API key configured. Add GEMINI_API_KEY to .env or enter a key.")
     elif prov == "openrouter":
-        config.LLM_PROVIDER = "openrouter"
-        if body.model:
-            config.OPENROUTER_MODEL = body.model.strip()
-        if body.api_key:
-            config.OPENROUTER_API_KEY = body.api_key.strip()
-    elif prov == "demo":
-        config.LLM_PROVIDER = "demo"
+        has_key = bool(body.api_key or (sess and sess.get("api_key") and sess.get("provider") == "openrouter") or config.OPENROUTER_API_KEY)
+        if not has_key:
+            raise HTTPException(400, "No OpenRouter API key configured. Add OPENROUTER_API_KEY to .env or enter a key.")
 
-    # If session_id is active, update the session's agent immediately
-    if body.session_id and body.session_id in sessions:
-        sess = sessions[body.session_id]
+    if not sess:
+        raise HTTPException(400, "A valid session_id is required to switch provider configuration.")
+
+    # Provider and key overrides are strictly session-scoped.
+    # Never mutate module-level global configuration (config.LLM_PROVIDER, config.GEMINI_API_KEY, etc.)
+    if sess:
         if sess.get("provider") != prov:
             sess["contents"] = []
-        sess["agent"] = _create_agent(sess["engine"], body.session_id, prov, body.model)
+        if body.api_key:
+            sess["api_key"] = body.api_key.strip()
         sess["provider"] = prov
-        sess["model"] = body.model or config.active_model()
+        sess["model"] = body.model or (
+            config.GEMINI_MODEL if prov == "gemini" else config.OPENROUTER_MODEL if prov == "openrouter" else "offline-demo"
+        )
+        sess["agent"] = _create_agent(sess["engine"], body.session_id, prov, sess["model"], sess.get("api_key"))
+
+        mode = sess["provider"]
+        active_model = sess["model"]
+        gemini_configured = bool(config.GEMINI_API_KEY or (sess.get("provider") == "gemini" and sess.get("api_key")))
+        openrouter_configured = bool(config.OPENROUTER_API_KEY or (sess.get("provider") == "openrouter" and sess.get("api_key")))
+    else:
+        mode = prov if prov != "auto" else config.mode()
+        active_model = body.model or (
+            config.GEMINI_MODEL if prov == "gemini" else config.OPENROUTER_MODEL if prov == "openrouter" else "offline-demo"
+        )
+        gemini_configured = bool(config.GEMINI_API_KEY or (body.api_key and prov == "gemini"))
+        openrouter_configured = bool(config.OPENROUTER_API_KEY or (body.api_key and prov == "openrouter"))
 
     return {
         "ok": True,
-        "mode": config.mode(),
-        "model": config.active_model(),
-        "gemini_configured": bool(config.GEMINI_API_KEY),
-        "openrouter_configured": bool(config.OPENROUTER_API_KEY),
+        "mode": mode,
+        "model": active_model,
+        "gemini_configured": gemini_configured,
+        "openrouter_configured": openrouter_configured,
     }
 
 
@@ -199,24 +215,71 @@ async def upload(files: list[UploadFile] = File(...)):
     if not files:
         raise HTTPException(400, "No files received.")
     sess, created = None, []
-    for f in files:
-        name = f.filename or ""
-        ext = Path(name).suffix.lower()
-        if ext not in (".csv", ".xlsx", ".xls"):
-            raise HTTPException(400, f"'{name}' is not supported. Only .csv, .xlsx, and .xls files are allowed.")
-        data = await f.read()
-        if len(data) > config.MAX_UPLOAD_MB * 1024 * 1024:
-            raise HTTPException(400, f"'{name}' exceeds the {config.MAX_UPLOAD_MB} MB limit.")
-        if sess is None:
-            sess = _new_session()
-        table_base = _sanitize_table(Path(name).stem)
-        path = config.UPLOAD_DIR / f"{sess['id']}_{table_base}{ext}"
-        path.write_bytes(data)
-        try:
-            loaded = sess["engine"].load_file(table_base, str(path))
-            created.extend(loaded)
-        except Exception as e:
-            raise HTTPException(400, f"Could not parse '{name}': {e}")
+    written_paths: list[Path] = []
+    max_bytes = config.MAX_UPLOAD_MB * 1024 * 1024
+    chunk_size = 1024 * 1024  # 1 MB chunks
+
+    try:
+        for f in files:
+            name = f.filename or ""
+            ext = Path(name).suffix.lower()
+            if ext not in (".csv", ".xlsx", ".xls"):
+                raise HTTPException(400, f"'{name}' is not supported. Only .csv, .xlsx, and .xls files are allowed.")
+
+            if sess is None:
+                sess = _new_session()
+
+            table_base = _sanitize_table(Path(name).stem)
+            path = config.UPLOAD_DIR / f"{sess['id']}_{table_base}{ext}"
+
+            # Path traversal prevention: must resolve strictly inside UPLOAD_DIR
+            try:
+                resolved_path = path.resolve()
+                upload_dir_resolved = config.UPLOAD_DIR.resolve()
+                if not resolved_path.is_relative_to(upload_dir_resolved):
+                    raise HTTPException(400, f"Invalid filename '{name}'.")
+            except Exception:
+                raise HTTPException(400, f"Invalid filename '{name}'.")
+
+            # Stream chunks to disk and enforce max size limit on cumulative streamed bytes
+            total_bytes = 0
+            file_too_large = False
+            with open(path, "wb") as out_f:
+                while True:
+                    chunk = await f.read(chunk_size)
+                    if not chunk:
+                        break
+                    total_bytes += len(chunk)
+                    if total_bytes > max_bytes:
+                        file_too_large = True
+                        break
+                    out_f.write(chunk)
+
+            if file_too_large:
+                path.unlink(missing_ok=True)
+                raise HTTPException(413, f"'{name}' exceeds the {config.MAX_UPLOAD_MB} MB limit.")
+
+            written_paths.append(path)
+
+            try:
+                loaded = sess["engine"].load_file(table_base, str(path))
+                created.extend(loaded)
+            except Exception as e:
+                path.unlink(missing_ok=True)
+                raise HTTPException(400, f"Could not parse '{name}': {e}")
+    except HTTPException:
+        for p in written_paths:
+            p.unlink(missing_ok=True)
+        if sess and sess["id"] in sessions:
+            sessions.pop(sess["id"], None)
+        raise
+    except Exception as e:
+        for p in written_paths:
+            p.unlink(missing_ok=True)
+        if sess and sess["id"] in sessions:
+            sessions.pop(sess["id"], None)
+        raise HTTPException(500, f"Upload processing error: {e}")
+
     return {"session_id": sess["id"], "tables": _table_payload(sess["engine"])}
 
 
@@ -249,7 +312,7 @@ def chat(body: ChatBody):
     if body.provider and (body.provider != sess.get("provider") or (body.model and body.model != sess.get("model"))):
         if body.provider != sess.get("provider"):
             sess["contents"] = []
-        sess["agent"] = _create_agent(sess["engine"], body.session_id, body.provider, body.model)
+        sess["agent"] = _create_agent(sess["engine"], body.session_id, body.provider, body.model, sess.get("api_key"))
         sess["provider"] = body.provider
         sess["model"] = body.model or config.active_model()
 

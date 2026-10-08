@@ -89,7 +89,7 @@ def _clean_dataframe_headers(df: pd.DataFrame) -> pd.DataFrame:
     clean_cols = []
     seen = {}
     for c in df.columns:
-        name = re.sub(r"[^0-9a-zA-Z_ ]+", "_", str(c)).strip("_ ")
+        name = re.sub(r"[^0-9a-zA-Z_ ]+", "_", str(c)).strip("_ ")[:64].rstrip("_ ")
         if not name or name.startswith("Unnamed"):
             name = "column"
         if name in seen:

@@ -9,6 +9,7 @@ Every tool run by the agent (Gemini or demo mode) goes through ToolBox:
 from __future__ import annotations
 
 import hashlib
+import html
 import time
 
 import pandas as pd
@@ -23,7 +24,15 @@ from .engine import DataEngine
 def _fmt(v) -> str:
     if v is None:
         return ""
-    return str(v)
+    return html.escape(str(v), quote=False)
+
+
+def _untrusted_text(value, limit: int | None = None) -> str:
+    """Escape markup delimiters before including dataset metadata in LLM text."""
+    text = str(value)
+    if limit is not None:
+        text = text[:limit]
+    return html.escape(re.sub(r"[\r\n\t]+", " ", text).strip(), quote=False)
 
 
 def _sanitize_duckdb_sql(query: str) -> str:
@@ -46,7 +55,7 @@ def _sanitize_duckdb_sql(query: str) -> str:
 def md_table(columns: list[str], rows: list[list]) -> str:
     if not columns:
         return "(empty result)"
-    head = "| " + " | ".join(str(c) for c in columns) + " |"
+    head = "| " + " | ".join(_fmt(c) for c in columns) + " |"
     sep = "|" + "|".join(["---"] * len(columns)) + "|"
     body = "\n".join("| " + " | ".join(_fmt(c) for c in row) + " |" for row in rows)
     return f"{head}\n{sep}\n{body}"
@@ -152,15 +161,25 @@ class ToolBox:
     def schema_digest(self) -> str:
         lines = []
         for t in self.engine.profile():
-            cols = ", ".join(f"{c['name']} ({c['type']})" for c in t["columns"])
-            lines.append(f"- {t['table']} ({t['rows']} rows): {cols}")
+            safe_table = _untrusted_text(t["table"], 64)
+            clean_cols = []
+            for c in t["columns"]:
+                c_name = _untrusted_text(c["name"], 64)
+                c_type = _untrusted_text(c["type"], 32)
+                clean_cols.append(f"{c_name} ({c_type})")
+            cols = ", ".join(clean_cols)
+            lines.append(f"- {safe_table} ({t['rows']} rows): {cols}")
         return "\n".join(lines) or "(no tables loaded)"
 
 
 # --------------------------------------------------------------- LLM text
 def _sql_text(r: dict) -> str:
     table = md_table(r["columns"], r["rows"])
-    out = f"Query OK — {r['row_count']} rows, returned in {r['elapsed_ms']} ms.\n{table}"
+    out = (
+        f"[UNTRUSTED QUERY RESULT DATA]\n"
+        f"Query OK — {r['row_count']} rows, returned in {r['elapsed_ms']} ms.\n"
+        f"<query_data>\n{table}\n</query_data>"
+    )
     if r.get("export"):
         out += (f"\n[SYSTEM: result had {r['row_count']} rows; only {len(r['rows'])} shown. "
                 f"Full result exported for the user at {r['export']}]")
@@ -173,15 +192,22 @@ def _sql_error_text(r: dict) -> str:
 
 
 def _schema_text(r: dict) -> str:
-    out = []
+    out = ["[UNTRUSTED SCHEMA PROFILE DATA]"]
     for t in r["tables"]:
-        lines = [f"Table {t['table']} ({t['rows']} rows):"]
+        safe_table = _untrusted_text(t["table"], 64)
+        lines = [f"Table {safe_table} ({t['rows']} rows):"]
         for c in t["columns"]:
-            bit = f"  - {c['name']} ({c['type']}), {c.get('nulls', 0)} nulls"
+            c_name = _untrusted_text(c["name"], 64)
+            c_type = _untrusted_text(c["type"], 32)
+            bit = f"  - {c_name} ({c_type}), {c.get('nulls', 0)} nulls"
             if "avg" in c and c.get("avg") is not None:
                 bit += f", range {c.get('min')}–{c.get('max')}, avg {round(c['avg'], 2)}"
             elif c.get("top_values"):
-                bit += f", top: {', '.join(c['top_values'][:3])}"
+                clean_tops = [
+                    repr(_untrusted_text(v, 40))
+                    for v in c["top_values"][:3]
+                ]
+                bit += f", top values: {', '.join(clean_tops)}"
             lines.append(bit)
         out.append("\n".join(lines))
     return "\n\n".join(out)
@@ -190,18 +216,23 @@ def _schema_text(r: dict) -> str:
 def _anomaly_text(r: dict) -> str:
     if not r["columns"]:
         return "No numeric columns suitable for anomaly detection."
-    out = [f"Anomaly scan of '{r['table']}' using {r['method'].upper()}:"]
+    out = [f"[UNTRUSTED ANOMALY DATA]\nAnomaly scan of '{_untrusted_text(r['table'], 64)}' using {r['method'].upper()}:"]
     for c in r["columns"]:
         lo = c.get("lower_bound")
         hi = c.get("upper_bound")
         if lo is not None and hi is not None:
-            out.append(f"- {c['column']}: {c['count']} anomalies. Normal range "
+            out.append(f"- {_untrusted_text(c['column'], 64)}: {c['count']} anomalies. Normal range "
                        f"{round(lo, 2)} to {round(hi, 2)} (mean {round(c['mean'], 2)}, "
                        f"std {round(c['std'], 2)}).")
         else:
-            out.append(f"- {c['column']}: {c['count']} anomalies beyond 3 standard deviations "
+            out.append(f"- {_untrusted_text(c['column'], 64)}: {c['count']} anomalies beyond 3 standard deviations "
                        f"(mean {round(c['mean'], 2)}, std {round(c['std'], 2)}).")
         if c["count"] and c.get("sample"):
             first = c["sample"][0]
-            out.append(f"  Example flagged row: { {k: str(v) for k, v in list(first.items())[:6]} }")
+            clean_first = {
+                _untrusted_text(k, 32):
+                _untrusted_text(v, 40)
+                for k, v in list(first.items())[:6]
+            }
+            out.append(f"  Example flagged row: {clean_first}")
     return "\n".join(out)
