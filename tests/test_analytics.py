@@ -301,3 +301,63 @@ def test_api_errors_for_missing_session_table_dataset_and_malformed_forecast(ana
     no_dataset = client.post("/api/chat", json={"session_id": empty_session["id"], "message": "analyze"})
     assert no_dataset.status_code == 400
     assert "Traceback" not in no_dataset.text
+
+
+def test_sql_numeric_boundaries_and_joined_aggregation_preserve_rows(engine, tmp_path):
+    customers_path = tmp_path / "customers.csv"
+    sales_path = tmp_path / "joined_sales.csv"
+    customers_path.write_text("customer_id,region\n1,North\n1,North\n2,South\n3,West\n", encoding="utf-8")
+    sales_path.write_text("customer_id,amount\n1,0.10\n1,-0.10\n2,0\n9,50\n", encoding="utf-8")
+    engine.load_csv("customers", str(customers_path))
+    engine.load_csv("joined_sales", str(sales_path))
+    tb = ToolBox(engine, "analytics-join-correctness")
+
+    result = tb.run_sql("SELECT c.region, SUM(s.amount) AS total, AVG(s.amount) AS mean, "
+                        "MIN(s.amount) AS low, MAX(s.amount) AS high, COUNT(*) AS n "
+                        "FROM customers c JOIN joined_sales s USING (customer_id) "
+                        "WHERE s.amount >= -0.1 GROUP BY c.region ORDER BY c.region")
+    assert result["ok"] is True
+    actual = {row[0]: row[1:] for row in result["rows"]}
+    assert actual["North"][0] == pytest.approx(0.0)
+    assert actual["North"][1] == pytest.approx(0.0)
+    assert actual["North"][2] == pytest.approx(-0.1)
+    assert actual["North"][3] == pytest.approx(0.1)
+    assert actual["North"][4] == 4  # duplicate dimension keys multiply matching fact rows
+    assert actual["South"] == [0.0, 0.0, 0.0, 0.0, 1]
+    assert "West" not in actual and "customer_id=9" not in str(actual)
+
+
+def test_forecast_flat_and_decreasing_trends_have_correct_direction(engine, tmp_path):
+    flat_path = tmp_path / "flat.csv"
+    down_path = tmp_path / "down.csv"
+    flat_path.write_text("date,value\n2025-01-01,5\n2025-02-01,5\n2025-03-01,5\n", encoding="utf-8")
+    down_path.write_text("date,value\n2025-01-01,3\n2025-02-01,2\n2025-03-01,1\n", encoding="utf-8")
+    engine.load_csv("flat", str(flat_path))
+    engine.load_csv("down", str(down_path))
+
+    flat = analytics.forecast_metric(engine, "flat", "date", "value", periods=2)
+    decreasing = analytics.forecast_metric(engine, "down", "date", "value", periods=1)
+    assert flat["ok"] is True
+    assert [point["forecast"] for point in flat["projections"]] == [5.0, 5.0]
+    assert flat["trend_direction"] == "Flat"
+    assert flat["growth_rate_pct"] == 0
+    assert flat["spec"]["data"][2]["name"] == "Upper 1.96× Residual SD"
+    assert flat["spec"]["data"][3]["name"] == "Residual Spread Band"
+    assert all("Confidence" not in trace.get("name", "") for trace in flat["spec"]["data"])
+    assert decreasing["trend_direction"] == "Downward"
+    assert decreasing["projections"][0]["forecast"] == pytest.approx(0.0)
+
+
+def test_forecast_rejects_explicit_unknown_columns_instead_of_using_another_metric(engine):
+    invalid_date = analytics.forecast_metric(engine, "sales", date_col="not_a_date", metric_col="sales")
+    invalid_metric = analytics.forecast_metric(engine, "sales", date_col="order_date", metric_col="not_a_metric")
+    assert invalid_date["ok"] is False and "date column" in invalid_date["error"].lower()
+    assert invalid_metric["ok"] is False and "metric column" in invalid_metric["error"].lower()
+
+
+def test_chart_spec_preserves_missing_axis_values_instead_of_turning_them_into_zero():
+    frame = pd.DataFrame({"category": ["known", None, "blank"], "value": [2.5, 8.0, None]})
+    spec = charts.build_spec(frame, "bar", "category", "value", "missing values")
+    trace = spec["data"][0]
+    assert trace["x"] == ["known", None, "blank"]
+    assert trace["y"] == [2.5, 8.0, None]

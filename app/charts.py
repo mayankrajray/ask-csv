@@ -13,6 +13,12 @@ PALETTE = ["#5b4dff", "#412ce7", "#c4c0ff", "#ff6b4a", "#565e74", "#bec6e0", "#c
 VALID_TYPES = ("bar", "line", "area", "scatter", "pie", "donut", "histogram")
 
 
+def _numeric_values(series: pd.Series) -> list[float | None]:
+    """Keep missing values missing in chart data rather than drawing them as zero."""
+    values = pd.to_numeric(series, errors="coerce")
+    return [None if pd.isna(value) else float(value) for value in values]
+
+
 def _sorted_by_x(df: pd.DataFrame, x: str) -> pd.DataFrame:
     """Sort rows by x if x looks like a date/time (line charts read better)."""
     try:
@@ -39,7 +45,7 @@ def build_spec(df: pd.DataFrame, chart_type: str, x: str | None, y: str | None, 
         xs = df[x]
     else:
         xs = df.iloc[:, 0]
-    xvals = [str(v) for v in xs.tolist()]
+    xvals = [None if pd.isna(v) else str(v) for v in xs.tolist()]
 
     if ct in ("pie", "donut"):
         if y and y in df.columns:
@@ -49,7 +55,7 @@ def build_spec(df: pd.DataFrame, chart_type: str, x: str | None, y: str | None, 
         trace = {
             "type": "pie",
             "labels": xvals,
-            "values": [float(v) for v in ys.tolist()],
+            "values": _numeric_values(ys),
             "hole": 0.55 if ct == "donut" else 0,
             "marker": {"colors": PALETTE},
             "textinfo": "label+percent",
@@ -61,7 +67,7 @@ def build_spec(df: pd.DataFrame, chart_type: str, x: str | None, y: str | None, 
             ys = df.select_dtypes(include="number").iloc[:, 0]
         trace = {
             "x": xvals,
-            "y": [float(v) for v in pd.to_numeric(ys, errors="coerce").fillna(0).tolist()],
+            "y": _numeric_values(ys),
             "marker": {"color": PALETTE[0], "size": 7},
             "line": {"color": PALETTE[0], "width": 2.5},
         }
