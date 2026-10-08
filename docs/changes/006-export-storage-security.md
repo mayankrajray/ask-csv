@@ -56,5 +56,5 @@ Sessions and DuckDB connections are in memory, so they do not survive process re
 
 ## Git Checkpoint
 
-Commit: PENDING
+Commit: `17db3cc` — `fix: secure export and file lifecycle`
 Branch: `assignment-final`

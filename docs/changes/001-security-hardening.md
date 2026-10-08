@@ -58,8 +58,8 @@ Offline DemoAgent smoke requests passed: `/api/health` returned 200 in demo mode
 
 - Sessions and runtime keys remain in memory and are lost on server restart.
 - Prompt instructions and data framing reduce injection risk but cannot guarantee model behavior.
-- Session history has no pruning strategy; DemoAgent does not use conversation context.
-- Upload size is bounded per file, not across all files in a multi-file request.
+- At this change’s checkpoint, session history had no pruning and DemoAgent did not use conversation context; bounded history and DemoAgent follow-up support were added in Change 002.
+- At this change’s checkpoint, the upload cap was per file; batch aggregate and file-count limits were added and verified in later security/storage work.
 
 ## Assumptions
 

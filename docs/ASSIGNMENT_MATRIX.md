@@ -4,7 +4,7 @@ Statuses describe the implementation present in this repository. `PARTIAL` means
 
 | Requirement | Implementation | Evidence / test | Status |
 |---|---|---|---|
-| Upload one or more CSV files | Bounded multipart upload into an isolated session; file/count/session size validation | `app/main.py`; `tests/test_security.py`, `tests/test_ingestion.py`, `tests/test_storage_security.py` | PASS |
+| Upload one or more CSV files | Bounded multipart upload into an isolated session; file/count/aggregate upload-batch size validation | `app/main.py`; `tests/test_security.py`, `tests/test_ingestion.py`, `tests/test_storage_security.py` | PASS |
 | Excel ingestion | XLS/XLSX parsing; workbook sheets are loaded as tables where supported | `app/engine.py`; `tests/test_ingestion.py` | PASS |
 | Natural-language dataset analysis | Gemini, OpenRouter, and offline DemoAgent call the ToolBox | `app/agent.py`, `app/openrouter_agent.py`, `app/demo_agent.py`; `tests/test_agent_reliability.py`, `tests/evaluation/` | PASS |
 | Business insights and summaries | SQL-backed analysis answers and report/dashboard summaries | `app/tools.py`, `app/analytics.py`; `tests/test_analytics.py`, `tests/evaluation/` | PASS |

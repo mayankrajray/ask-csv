@@ -47,7 +47,7 @@ Each session retains a bounded recent history (12 turns by default). Gemini and 
 
 ## Security and operational limits
 
-- Uploads are streamed and bounded (50 MB per file by default); default per-session limits are 200 MB total upload, 20 files, 200 MB exports, and 20 exports.
+- Uploads are streamed and bounded (50 MB per file by default); a new upload session is limited to 200 MB and 20 files per upload batch. Generated exports are limited to 200 MB and 20 files per session.
 - Session storage retention defaults to 24 hours; in-memory session capacity defaults to 200. Cleanup is local to this single-process application.
 - Table and SQL validation guard read queries, reject write statements and external readers, and DuckDB external access is disabled.
 - Dataset contents, schema names, and tool outputs are treated as untrusted prompt data. This mitigates prompt injection; no prompt-based defense can guarantee that every malicious instruction will be ignored.
@@ -72,7 +72,7 @@ Copy `.env.example` to `.env` if you want to configure the application. Leave ke
 | `GEMINI_MODEL` | `gemini-3.6-flash` | Gemini model identifier. |
 | `MAX_ROWS_TO_LLM` | `20` | Maximum result rows sent to a provider. |
 | `MAX_UPLOAD_MB` | `50` | Per-file upload limit. |
-| `MAX_SESSION_UPLOAD_MB` | `200` | Aggregate uploaded bytes per session. |
+| `MAX_SESSION_UPLOAD_MB` | `200` | Aggregate uploaded bytes for the upload batch that creates a session. |
 | `MAX_SESSION_EXPORT_MB` | `200` | Aggregate generated export bytes per session. |
 | `MAX_FILES_PER_SESSION` | `20` | Uploaded file count limit per session. |
 | `MAX_EXPORTS_PER_SESSION` | `20` | Generated export count limit per session. |

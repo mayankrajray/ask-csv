@@ -35,5 +35,5 @@ The assignment matrix marks authentication and semantic search as not implemente
 
 ## Git checkpoint
 
-Commit: PENDING
+Commit: `3f013df` — `docs: finalize project integration and submission docs`
 Branch: `assignment-final`

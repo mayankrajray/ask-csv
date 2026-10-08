@@ -55,5 +55,5 @@ Provider failures are intentionally summarized and omit provider-specific diagno
 
 ## Git Checkpoint
 
-Commit: PENDING
+Commit: `82e554c` — `fix: harden agent and tool execution`
 Branch: `assignment-final`
