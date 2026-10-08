@@ -117,6 +117,14 @@ class ToolBox:
         df = pd.DataFrame(r["rows"], columns=r["columns"])
         if df.empty:
             return {"ok": False, "error": "Query returned no rows to chart."}
+        if x and x not in df.columns:
+            return {"ok": False, "error": f"Chart x column '{x}' is not in the query result."}
+        if y and y not in df.columns:
+            return {"ok": False, "error": f"Chart y column '{y}' is not in the query result."}
+        if y and not pd.api.types.is_numeric_dtype(df[y]):
+            return {"ok": False, "error": f"Chart y column '{y}' must be numeric."}
+        if not y and df.select_dtypes(include="number").empty:
+            return {"ok": False, "error": "Chart query must include a numeric column."}
         spec = charts.build_spec(df, chart_type, x, y, title)
         return {
             "ok": True,
