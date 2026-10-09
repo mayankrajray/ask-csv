@@ -4,6 +4,8 @@ AskCSV is a browser-based data analyst for CSV and Excel workbooks. Upload one o
 
 This repository is prepared as an AI Engineer assignment submission. The application uses a vanilla HTML/CSS/JavaScript frontend served by FastAPI; it has no npm build step.
 
+**Live demo:** [https://ask-csv.fastapicloud.dev](https://ask-csv.fastapicloud.dev)
+
 ## Key features
 
 - CSV, XLS, and XLSX ingestion; workbook sheets become separate tables where supported.
@@ -34,6 +36,27 @@ flowchart TD
 ```
 
 See [architecture documentation](docs/architecture.md) for the component and security-boundary diagrams.
+
+## Technology stack
+
+- **Backend:** Python, FastAPI, DuckDB, Pandas
+- **Frontend:** HTML, CSS, and JavaScript, served from the FastAPI application
+- **AI providers:** Google Gemini and OpenRouter, with an offline DemoAgent when no usable provider key is configured
+- **Testing:** pytest, deterministic local evaluation fixtures, and mocked provider tests
+
+## Screenshots
+
+These existing project screenshots show the main application workflows:
+
+| Workspace | Analysis | Dashboard |
+|---|---|---|
+| ![AskCSV workspace](screenshot/home.png) | ![Chat analysis](screenshot/chat.png) | ![Dashboard](screenshot/dashboard.png) |
+
+| Upload | Data quality | Forecast |
+|---|---|---|
+| ![Upload view](screenshot/upload.png) | ![Data quality view](screenshot/data-quality.png) | ![Forecast view](screenshot/forecast.png) |
+
+Additional captures are in [`screenshot/`](screenshot/), including the spreadsheet, report, observability, settings, and mobile views.
 
 ## Conversation context
 
@@ -117,17 +140,27 @@ docker compose up
 
 Then visit <http://localhost:8000>. Configure provider variables in an untracked `.env` file if needed. The compose service maps the local `data/` directory into the container; sessions remain in memory, and uploads/exports use the container’s local filesystem. The image does not include `.env` or development files in its build context.
 
-## Render demo deployment
+## Deployment
 
-The included `render.yaml` defines one Python web service from the `main` branch. In Render, create or sync the Blueprint and provide `GEMINI_API_KEY` and/or `OPENROUTER_API_KEY` as dashboard secrets; never add credentials to the repository. `ALLOW_KEY_OVERRIDE` is set to `false`, so keys must come from the service environment. If neither provider has a usable key, AskCSV uses its offline DemoAgent.
+The current live deployment is hosted on FastAPI Cloud Hobby at [https://ask-csv.fastapicloud.dev](https://ask-csv.fastapicloud.dev). It uses a Free instance and is configured for Gemini. Provider credentials are stored as dashboard secrets; never add credentials to the repository. OpenRouter is configured as a provider credential, but automatic Gemini-to-OpenRouter failover is not implemented. If no usable provider key is configured, AskCSV can run with its offline DemoAgent.
 
-The service installs `requirements.txt`, starts with `uvicorn app.main:app --host 0.0.0.0 --port $PORT`, and checks `/api/health`. FastAPI serves both the frontend and API on the same origin, so the Blueprint leaves `ALLOWED_ORIGINS` unset and does not need a separate frontend hostname. If you later host the frontend separately, configure `ALLOWED_ORIGINS` to that exact origin in the Render dashboard.
+The frontend and API are served from the same origin. The live service is limited to one maximum replica; Hobby scales to zero while idle, so the first request after idle may take longer and in-memory sessions can be lost on restart or scale-down. `/api/health` reports the active provider mode and key-presence flags without returning key values.
 
-This configuration is for a controlled demo using non-sensitive datasets. Sessions and provider overrides are in memory; one service instance/process is required, and sessions are lost on restart. Uploads and exports are in local directories and may be lost on restart or when the host filesystem is ephemeral. No authentication is provided, so do not use private datasets. Persistent storage can preserve files but does not make in-memory sessions durable or support multiple instances.
+`render.yaml` remains in the repository as an alternative deployment configuration; it is not the current live host. Its one-service setup installs `requirements.txt`, runs Uvicorn, and checks `/api/health`.
+
+The deployment is intended for a controlled demo with non-sensitive datasets. No authentication is provided. Uploaded files and exports use local storage and may be ephemeral; do not use private datasets.
 
 ## Sample data
 
 `data/sales.csv` is a small retail dataset for the demo and bundled sample action. The data includes deliberate quality/anomaly examples. Rebuild it with `python data/make_sample_dataset.py`.
+
+Its columns are `order_id`, `order_date`, `region`, `city`, `category`, `product`, `customer`, `quantity`, `unit_price`, `revenue`, and `channel`. Upload it from the **Upload** tab or use **Load sample dataset** in the app. Example questions:
+
+- Which region generated the highest revenue?
+- How does revenue vary by product category?
+- What were the monthly revenue trends?
+- Are there unusual revenue values?
+- How much revenue did the top region generate? (follow-up context)
 
 ## 3–5 minute demo flow
 
@@ -139,6 +172,19 @@ This configuration is for a controlled demo using non-sensitive datasets. Sessio
 6. Upload a second related file, join it with the first, and export the result.
 
 For screenshots, capture genuine application states: upload/data workspace, question with visible SQL/result, chart/dashboard, quality/anomaly, multi-file/join, and export result. The `screenshot/` directory contains existing project images; replace or supplement them only with real current UI captures. A video can follow the numbered sequence above.
+
+## Demo Video
+
+> **TODO: Record and add the final 10–30 second demo video before submission.**
+
+<!-- Replace the placeholder below with the actual video URL after recording. -->
+
+**Demo video:** `ADD_DEMO_VIDEO_URL_HERE`
+
+The video will demonstrate:
+- Uploading a sample CSV
+- Asking a natural-language business question
+- Viewing the generated analysis, SQL, chart, and explanation
 
 ## Assignment requirement matrix
 
@@ -156,4 +202,4 @@ See [docs/ASSIGNMENT_MATRIX.md](docs/ASSIGNMENT_MATRIX.md) for the implementatio
 
 ## Validation snapshot
 
-Latest verification for this change: **156 tests passed** in the full suite, and **12 evaluation cases passed**. The full suite emitted one existing Starlette/httpx deprecation warning. Details are in [docs/changes/011-integration-submission-readiness.md](docs/changes/011-integration-submission-readiness.md).
+Verification during the current submission-preparation run: **154 passed, 2 skipped** in the full suite; **12 evaluation cases passed**; `pip check` reported no broken requirements. Pytest emitted one existing Starlette/httpx deprecation warning. Docker was installed, but its Linux engine was unavailable, so image build/runtime were not verified. The live homepage and `/api/health` each returned HTTP 200; health reported Gemini mode. See [docs/changes/011-integration-submission-readiness.md](docs/changes/011-integration-submission-readiness.md) for earlier environment-specific checks.
