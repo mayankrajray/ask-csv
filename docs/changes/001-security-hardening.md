@@ -71,3 +71,15 @@ Offline DemoAgent smoke requests passed: `/api/health` returned 200 in demo mode
 
 Commit: `c4ef9df` (implementation checkpoint)
 Branch: `assignment-final`
+
+## Later Test Determinism Correction
+
+The pre-merge audit found that `test_switch_config_session_isolated` blanked the OpenRouter key but not the Gemini key. With a Gemini key configured in the developer environment, `_new_session()` correctly selected Gemini for the second session, while the test incorrectly hard-coded DemoAgent as the baseline. The test now also blanks the unrelated Gemini key through pytest `monkeypatch`, making the intended offline baseline deterministic. Production provider selection is unchanged.
+
+Verification with the normal local `.env` present and unchanged:
+
+- Focused test: **1 passed**.
+- Full suite: **154 passed, 2 skipped, 0 failed**. The skipped cases are DemoAgent-only checks, not applicable while a remote provider is configured.
+- Evaluation: **12 passed**.
+- `pip check`: **No broken requirements found.**
+- `git diff --check`: passed.

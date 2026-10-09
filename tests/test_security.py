@@ -118,6 +118,8 @@ def test_upload_path_traversal_filename_stays_in_upload_dir(monkeypatch, tmp_pat
 
 def test_switch_config_session_isolated(monkeypatch):
     monkeypatch.setattr(config, "OPENROUTER_API_KEY", "")
+    # Keep the expected offline baseline independent of an unrelated Gemini key in .env.
+    monkeypatch.setattr(config, "GEMINI_API_KEY", "")
     orig_provider = config.LLM_PROVIDER
     orig_key = config.OPENROUTER_API_KEY
     orig_model = config.OPENROUTER_MODEL
