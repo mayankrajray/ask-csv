@@ -1,20 +1,56 @@
 # AskCSV — AI Data Analyst
 
-AskCSV is a browser-based data analyst for CSV and Excel workbooks. Upload one or more files, ask questions in natural language, and inspect the SQL, results, charts, and analytical views. It supports an offline DemoAgent as well as Gemini and OpenRouter providers.
+## Project Overview
 
-This repository is prepared as an AI Engineer assignment submission. The application uses a vanilla HTML/CSS/JavaScript frontend served by FastAPI; it has no npm build step.
+AskCSV is a browser-based analyst for CSV and Excel data. Load a file, ask a business question in natural language, and review the generated read-only SQL, results, charts, and explanatory summary. It is designed for quick exploration of small datasets, including follow-up questions, without requiring users to write SQL themselves.
 
-**Live demo:** [https://ask-csv.fastapicloud.dev](https://ask-csv.fastapicloud.dev)
+**Live application:** [https://ask-csv.fastapicloud.dev](https://ask-csv.fastapicloud.dev)
 
-## Key features
+The frontend is plain HTML, CSS, and JavaScript served by FastAPI. The project has no npm build pipeline.
 
-- CSV, XLS, and XLSX ingestion; workbook sheets become separate tables where supported.
-- Multiple datasets in a session, including SQL joins across tables.
-- Natural-language analysis through Gemini, OpenRouter, or the deterministic offline DemoAgent.
-- Bounded multi-turn conversation context and streamed chat events (Server-Sent Events).
-- DuckDB SQL analysis with read-only validation and external file/network access disabled.
-- Dashboard summaries, data-quality checks, IQR/z-score anomaly detection, linear-trend forecasting, chart specifications, reports, and CSV result exports.
-- Session-scoped provider configuration, upload/export limits, file ownership, and deterministic evaluation tests.
+## Demo Video
+
+> **TODO: Record and add the final 10–30 second demo video before submission.**
+
+Replace this placeholder with the real video URL after recording:
+
+**Demo video:** `ADD_DEMO_VIDEO_URL_HERE`
+
+The video should show a sample CSV upload, a natural-language question, and the resulting analysis with SQL, chart, and explanation.
+
+## Screenshots
+
+The repository includes UI captures for these existing screens:
+
+**Workspace and dataset list**
+
+![AskCSV workspace](screenshot/home.png)
+
+**Chat answer with analysis output**
+
+![Chat analysis](screenshot/chat.png)
+
+**Dashboard overview**
+
+![Dashboard](screenshot/dashboard.png)
+
+Other captures: [upload](screenshot/upload.png), [spreadsheet](screenshot/spreadsheet.png), [data quality](screenshot/data-quality.png), [anomalies](screenshot/anomalies.png), [forecast](screenshot/forecast.png), [report](screenshot/report.png), [observability](screenshot/observability.png), [settings](screenshot/settings.png), and [mobile layout](screenshot/mobile.png).
+
+## Features and Assignment Coverage
+
+| Area | AskCSV implementation |
+|---|---|
+| Data upload | CSV, XLS, and XLSX ingestion; workbook sheets are represented as tables where supported. Upload size, file count, and batch limits are enforced. |
+| Natural-language analysis | Gemini, OpenRouter, or an offline deterministic DemoAgent can answer supported questions using validated tools. |
+| SQL and results | The agent can generate and execute read-only DuckDB SQL. The chat stream can show SQL, result data, charts, and a natural-language explanation. |
+| Conversation | Session-scoped, bounded recent history supports follow-up questions; starting a new chat clears conversation context while retaining the dataset. |
+| Visual analysis | Plotly chart specifications and dashboard summaries, with separate views for data quality, statistical anomalies, forecasts, and reports. |
+| Multi-file work | Tables in one session can be analyzed together with SQL joins. |
+| Export | Query results can be exported as session-owned CSV files. |
+| Streaming | Chat events are returned using Server-Sent Events (SSE). |
+| Verification | pytest suite and 12 deterministic fixed-fixture evaluation cases; provider tests use mocks rather than live provider calls. |
+
+**Scope notes:** anomaly detection uses IQR or z-score statistics; forecasting is a linear trend projection. Evaluation verifies deterministic behavior and does not score live LLM quality. Semantic search and authentication are not implemented. See the [assignment matrix](docs/ASSIGNMENT_MATRIX.md) for fuller evidence and partial items.
 
 ## Architecture
 
@@ -37,38 +73,100 @@ flowchart TD
 
 See [architecture documentation](docs/architecture.md) for the component and security-boundary diagrams.
 
-## Technology stack
+## API Endpoints Reference
+
+These routes are declared by the FastAPI application in `app/main.py`. Chat is streamed as Server-Sent Events; other listed responses are JSON unless described otherwise.
+
+| Method | Endpoint | Inputs | Response or behavior |
+|---|---|---|---|
+| `GET` | `/api/health` | None | Health and provider-mode metadata; does not return credentials. |
+| `GET` | `/api/config` | None | Current provider/model configuration and key-presence indicators. |
+| `POST` | `/api/config/switch` | JSON: required `provider` (`gemini`, `openrouter`, or `demo`; handler also accepts `auto`); optional `model`, `api_key`, `session_id` | Applies provider settings for the session and returns configuration status. Runtime key overrides can be disabled by configuration. |
+| `POST` | `/api/upload` | Multipart form with one or more `files` entries | Ingests CSV, XLS, or XLSX files and returns the created session and table metadata. |
+| `POST` | `/api/sample` | None | Loads the bundled `data/sales.csv` sample into a new session. |
+| `POST` | `/api/chat` | JSON: `session_id`, `message`; optional `provider`, `model` | Streams chat events as `text/event-stream`, including analysis events and completion. |
+| `POST` | `/api/chat/new` | JSON: `session_id` | Clears that session's conversation history while retaining its datasets. |
+| `GET` | `/api/schema/{sid}/{table}` | Path: `sid`, `table` | Returns the selected table's schema/profile. |
+| `GET` | `/api/preview/{sid}/{table}` | Path: `sid`, `table`; query: `limit` (default 500), `offset` (default 0) | Returns a paginated table preview, schema, and row count. |
+| `GET` | `/api/dashboard/{sid}/{table}` | Path: `sid`, `table` | Returns dashboard summary data for the selected table. |
+| `GET` | `/api/quality/{sid}/{table}` | Path: `sid`, `table` | Returns data-quality findings for the selected table. |
+| `GET` | `/api/forecast/{sid}/{table}` | Path: `sid`, `table`; optional query: `date_col`, `metric_col`, `periods` (default 6) | Returns a linear forecast or a controlled validation/error response. |
+| `GET` | `/api/report/{sid}/{table}` | Path: `sid`, `table` | Returns a generated report/summary for the selected table. |
+| `GET` | `/api/logs/{sid}` | Path: `sid` | Returns session-scoped operational/query metadata. |
+| `GET` | `/api/exports/{sid}/{filename}` | Path: `sid`, session-owned CSV `filename` | Streams a CSV export only when it belongs to the requested session. |
+
+AskCSV does not expose a separate arbitrary-SQL HTTP route; SQL execution is mediated through the chat agent's tools and query validation.
+
+## Project Structure
+
+The following tree lists the main tracked project files (omitting individual historical change notes and vendored library internals):
+
+```text
+ask-csv/
+├── app/                         # FastAPI application and analysis logic
+│   ├── main.py                  # Routes, session lifecycle, upload and download handling
+│   ├── engine.py                # Per-session DuckDB data access and SQL validation
+│   ├── tools.py                 # Agent-callable analysis and export tools
+│   ├── agent.py                 # Agent interface/provider selection
+│   ├── openrouter_agent.py      # OpenRouter integration
+│   ├── demo_agent.py            # Offline deterministic analyst
+│   ├── conversation.py          # Bounded conversation history
+│   ├── config.py                # Environment-backed configuration
+│   ├── analytics.py             # Dashboard and data-quality calculations
+│   ├── anomalies.py             # Statistical anomaly detection
+│   ├── charts.py                # Chart specification generation
+│   └── provider_errors.py       # Provider error normalization
+├── frontend/
+│   ├── index.html               # Single-page application shell
+│   ├── css/app.css              # Existing frontend styling
+│   ├── js/app.js                # Browser interactions and API/SSE client
+│   └── vendor/                  # Bundled Plotly and Tabulator assets
+├── data/
+│   ├── sales.csv                # Bundled synthetic retail sample
+│   └── make_sample_dataset.py   # Regenerates the sample data
+├── screenshot/                  # Existing application screenshots
+├── tests/                       # API, engine, security, feature and lifecycle tests
+│   └── evaluation/              # Deterministic fixed-fixture evaluation suite
+├── docs/
+│   ├── architecture.md          # Architecture and boundary diagrams
+│   ├── ASSIGNMENT_MATRIX.md     # Requirement-to-evidence mapping
+│   ├── FINAL_AUDIT.md           # Final submission audit
+│   └── changes/                 # Per-chunk implementation and verification notes
+├── requirements.txt             # Runtime dependencies
+├── requirements-dev.txt         # Development/test dependencies
+├── .env.example                 # Safe configuration names and placeholders
+├── Dockerfile                   # Container image definition
+├── docker-compose.yml           # Local container configuration
+└── render.yaml                  # Alternative Render service blueprint
+```
+
+## Technology Stack
 
 - **Backend:** Python, FastAPI, DuckDB, Pandas
 - **Frontend:** HTML, CSS, and JavaScript, served from the FastAPI application
 - **AI providers:** Google Gemini and OpenRouter, with an offline DemoAgent when no usable provider key is configured
 - **Testing:** pytest, deterministic local evaluation fixtures, and mocked provider tests
 
-## Screenshots
+## How to Use AskCSV
 
-These existing project screenshots show the main application workflows:
+1. Open the [live application](https://ask-csv.fastapicloud.dev), or start it locally using the setup steps below.
+2. Choose **Load sample dataset** to load `data/sales.csv`, or use **Upload** to select CSV/XLS/XLSX files.
+3. Ask a question about the visible table, for example: “Which region generated the highest revenue?”
+4. Review the answer, any generated SQL/result and chart, and the accompanying natural-language explanation.
+5. Ask a related follow-up, such as “How much did it generate?” to use recent conversation context.
+6. Use the Dashboard, Data Quality, Forecast, and Report views for the corresponding deterministic analyses.
 
-| Workspace | Analysis | Dashboard |
-|---|---|---|
-| ![AskCSV workspace](screenshot/home.png) | ![Chat analysis](screenshot/chat.png) | ![Dashboard](screenshot/dashboard.png) |
-
-| Upload | Data quality | Forecast |
-|---|---|---|
-| ![Upload view](screenshot/upload.png) | ![Data quality view](screenshot/data-quality.png) | ![Forecast view](screenshot/forecast.png) |
-
-Additional captures are in [`screenshot/`](screenshot/), including the spreadsheet, report, observability, settings, and mobile views.
-
-## Conversation context
+## Conversation Context
 
 Each session retains a bounded recent history (12 turns by default). Gemini and OpenRouter receive provider-appropriate conversation messages; DemoAgent uses the same session’s recent exchanges to resolve supported follow-up references. `/api/chat/new` clears conversation history while keeping that session’s datasets. Session state is in memory and is lost on restart.
 
-## Analytics methods
+## Analytics Methods
 
 - Anomaly detection uses statistical IQR or z-score rules; it is not machine-learning anomaly detection.
 - Forecasting fits a linear trend and reports a residual-spread band. It does not model seasonality or provide a guarantee of predictive accuracy.
 - Dashboard, quality, chart, and report views use the uploaded data and deterministic application logic.
 
-## Security and operational limits
+## Security and Design Decisions
 
 - Uploads are streamed and bounded (50 MB per file by default); a new upload session is limited to 200 MB and 20 files per upload batch. Generated exports are limited to 200 MB and 20 files per session.
 - Session storage retention defaults to 24 hours; in-memory session capacity defaults to 200. Cleanup is local to this single-process application.
@@ -82,7 +180,7 @@ Each session retains a bounded recent history (12 turns by default). Gemini and 
 
 See [environment variables](#environment-configuration) and [known limitations](#known-limitations).
 
-## Environment configuration
+## Environment Configuration
 
 Copy `.env.example` to `.env` if you want to configure the application. Leave keys empty for offline demo mode. Never commit `.env` or put real credentials in `.env.example`.
 
@@ -105,7 +203,7 @@ Copy `.env.example` to `.env` if you want to configure the application. Leave ke
 
 `MAX_TOOL_STEPS=8`, `MAX_CONVERSATION_TURNS=12`, and `SESSION_LIMIT=200` are code defaults rather than environment variables.
 
-## Setup and run (Windows PowerShell)
+## Quickstart and Local Setup
 
 ```powershell
 git clone https://github.com/mayankrajray/ask-csv.git
@@ -118,7 +216,11 @@ Copy-Item .env.example .env  # Optional; edit only with your own credentials.
 python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
-Open <http://127.0.0.1:8000>. The frontend is served by FastAPI; there is no separate frontend build command. Health check: <http://127.0.0.1:8000/api/health>.
+On Windows, open <http://127.0.0.1:8000>. The frontend is served by FastAPI; there is no separate frontend build command. Health check: <http://127.0.0.1:8000/api/health>.
+
+On macOS or Linux, activate the environment with `source .venv/bin/activate`, then use `python -m pip install -r requirements.txt`, `python -m pip install -r requirements-dev.txt`, and `python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload`.
+
+Copying `.env.example` to `.env` is optional for local setup. Leave provider keys blank to use DemoAgent, or enter your own provider key locally in the untracked `.env` file. Never commit that file.
 
 Run tests and the deterministic evaluation:
 
@@ -150,7 +252,7 @@ The frontend and API are served from the same origin. The live service is limite
 
 The deployment is intended for a controlled demo with non-sensitive datasets. No authentication is provided. Uploaded files and exports use local storage and may be ephemeral; do not use private datasets.
 
-## Sample data
+## Sample Data
 
 `data/sales.csv` is a small retail dataset for the demo and bundled sample action. The data includes deliberate quality/anomaly examples. Rebuild it with `python data/make_sample_dataset.py`.
 
@@ -162,7 +264,7 @@ Its columns are `order_id`, `order_date`, `region`, `city`, `category`, `product
 - Are there unusual revenue values?
 - How much revenue did the top region generate? (follow-up context)
 
-## 3–5 minute demo flow
+## 3–5 Minute Demo Flow
 
 1. Load the sample or upload a CSV, then show the dataset workspace and schema.
 2. Ask which region has the highest sales; show the answer, SQL, and result.
@@ -172,19 +274,6 @@ Its columns are `order_id`, `order_date`, `region`, `city`, `category`, `product
 6. Upload a second related file, join it with the first, and export the result.
 
 For screenshots, capture genuine application states: upload/data workspace, question with visible SQL/result, chart/dashboard, quality/anomaly, multi-file/join, and export result. The `screenshot/` directory contains existing project images; replace or supplement them only with real current UI captures. A video can follow the numbered sequence above.
-
-## Demo Video
-
-> **TODO: Record and add the final 10–30 second demo video before submission.**
-
-<!-- Replace the placeholder below with the actual video URL after recording. -->
-
-**Demo video:** `ADD_DEMO_VIDEO_URL_HERE`
-
-The video will demonstrate:
-- Uploading a sample CSV
-- Asking a natural-language business question
-- Viewing the generated analysis, SQL, chart, and explanation
 
 ## Assignment requirement matrix
 
@@ -200,6 +289,12 @@ See [docs/ASSIGNMENT_MATRIX.md](docs/ASSIGNMENT_MATRIX.md) for the implementatio
 - The 12-case evaluation is deterministic and fixed-fixture; it does not measure live LLM quality.
 - Docker build/runtime verification depends on a running Docker Desktop engine. See the latest integration change record for this environment’s validation result.
 
-## Validation snapshot
+## Testing and Verification
 
-Verification during the current submission-preparation run: **154 passed, 2 skipped** in the full suite; **12 evaluation cases passed**; `pip check` reported no broken requirements. Pytest emitted one existing Starlette/httpx deprecation warning. Docker was installed, but its Linux engine was unavailable, so image build/runtime were not verified. The live homepage and `/api/health` each returned HTTP 200; health reported Gemini mode. See [docs/changes/011-integration-submission-readiness.md](docs/changes/011-integration-submission-readiness.md) for earlier environment-specific checks.
+In this README update, the full suite completed with **154 passed, 2 skipped** and the evaluation suite with **12 passed**. `pip check` reported no broken requirements. Pytest emitted one Starlette/httpx deprecation warning. Docker CLI is installed, but its Linux engine was unavailable, so image build/runtime were not verified. The live homepage and `/api/health` results below are historical checks from the earlier submission-preparation run, not rechecked in this README update; both returned HTTP 200 and health reported Gemini mode. See [docs/changes/011-integration-submission-readiness.md](docs/changes/011-integration-submission-readiness.md) for that run's record.
+
+```powershell
+python -m pytest -q
+python -m pytest tests/evaluation -v
+python -m pip check
+```
