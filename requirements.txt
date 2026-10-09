@@ -1,4 +1,4 @@
-fastapi>=0.110
+fastapi[standard]>=0.110
 uvicorn[standard]>=0.29
 duckdb>=0.10
 pandas>=2.0
