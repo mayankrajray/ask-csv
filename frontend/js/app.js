@@ -1,15 +1,16 @@
 /* AskCSV frontend — Enterprise AI Data Analyst
    Supports: Multi-file CSV/XLSX/XLS, Spreadsheet Grid, Auto-Dashboard, Data Quality,
-   Time-Series Forecasting, Executive Reports, Observability, and Gemini/OpenRouter AI switching.
+   Time-Series Forecasting, Executive Reports, Observability, and Gemini/OpenRouter/Groq AI switching.
 */
 
 const $ = (sel) => document.querySelector(sel);
 const state = {
   sessionId: null,
-  mode: "demo",           // "gemini", "openrouter", "demo"
+  mode: "demo",           // "gemini", "openrouter", "groq", "demo"
   model: "",
   geminiConfigured: false,
   openrouterConfigured: false,
+  groqConfigured: false,
   tables: [],
   activeTable: null,
   activeView: "chat",     // "chat", "upload", "viewer", "dashboard", "quality", "forecast", "report", "observability"
@@ -226,6 +227,7 @@ async function fetchHealthAndConfig() {
       if (!state.model) state.model = state.configData.active_model;
       state.geminiConfigured = state.configData.gemini.configured;
       state.openrouterConfigured = state.configData.openrouter.configured;
+      state.groqConfigured = state.configData.groq.configured;
     }
   } catch {
     state.mode = "demo";
@@ -242,6 +244,9 @@ function updateModePill() {
   } else if (state.mode === "openrouter") {
     const shortModel = (state.model || "gpt-4o-mini").split("/").pop();
     lbl.textContent = `OpenRouter (${shortModel})`;
+  } else if (state.mode === "groq") {
+    const shortModel = (state.model || "openai/gpt-oss-20b").split("/").pop();
+    lbl.textContent = `Groq (${shortModel})`;
   } else {
     lbl.textContent = "Offline Demo Mode";
   }
@@ -486,7 +491,9 @@ function selectModalProvider(prov) {
   selectPresets.innerHTML = '<option value="">-- Choose Preset Model --</option>';
   const presets = prov === "gemini"
     ? (state.configData?.gemini?.models || ["gemini-3.6-flash", "gemini-3.7-flash", "gemini-2.5-pro"])
-    : (state.configData?.openrouter?.models || [
+    : prov === "groq"
+      ? (state.configData?.groq?.models || ["openai/gpt-oss-20b"])
+      : (state.configData?.openrouter?.models || [
         "openai/gpt-4o-mini",
         "openai/gpt-4o",
         "anthropic/claude-sonnet-5.5",
@@ -504,13 +511,17 @@ function selectModalProvider(prov) {
 
   const defaultModel = prov === "gemini"
     ? (state.configData?.gemini?.model || "gemini-3.6-flash")
-    : (state.configData?.openrouter?.model || "openai/gpt-4o-mini");
+    : prov === "groq"
+      ? (state.configData?.groq?.model || "openai/gpt-oss-20b")
+      : (state.configData?.openrouter?.model || "openai/gpt-4o-mini");
 
   inputModel.value = (state.mode === prov && state.model) ? state.model : defaultModel;
 
-  const isConfigured = prov === "gemini" ? state.geminiConfigured : state.openrouterConfigured;
+  const isConfigured = prov === "gemini" ? state.geminiConfigured
+    : prov === "groq" ? state.groqConfigured : state.openrouterConfigured;
+  const providerName = prov === "gemini" ? "Gemini" : prov === "groq" ? "Groq" : "OpenRouter";
   keyStatus.innerHTML = isConfigured
-    ? `<span style="color:var(--green)">✓ ${prov === 'gemini' ? 'Gemini' : 'OpenRouter'} API Key is active</span>`
+    ? `<span style="color:var(--green)">✓ ${providerName} API Key is active</span>`
     : `<span style="color:var(--amber)">⚠ No API key found in .env. Enter one above to unlock.</span>`;
 }
 
@@ -543,6 +554,7 @@ async function applyApiModal() {
       state.model = res.model;
       state.geminiConfigured = res.gemini_configured;
       state.openrouterConfigured = res.openrouter_configured;
+      state.groqConfigured = res.groq_configured;
       saveSessionToStorage();
       updateModePill();
       closeApiModal();
@@ -1164,7 +1176,9 @@ function addAssistantGreeting() {
   const names = state.tables.map((t) => `**${t.table}**`).join(", ");
   const total = state.tables.reduce((a, t) => a + t.rows, 0);
   const msg = addAssistant();
-  const provName = state.mode === "gemini" ? "Google Gemini" : (state.mode === "openrouter" ? "OpenRouter" : "Offline Demo");
+  const provName = state.mode === "gemini" ? "Google Gemini"
+    : state.mode === "openrouter" ? "OpenRouter"
+      : state.mode === "groq" ? "Groq" : "Offline Demo";
   msg.addToken(`Hello! I've loaded ${names} — **${fmt(total)} rows** total.\n\n` +
     `Connected via **${provName}** (${state.model || "active model"}). ` +
     `Ask me questions and I'll analyze with DuckDB SQL, chart patterns, forecast trends, and check anomalies.`);

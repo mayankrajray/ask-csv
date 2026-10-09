@@ -7,9 +7,10 @@ from fastapi.testclient import TestClient
 from app import config
 from app import agent as gemini_module
 from app import openrouter_agent as openrouter_module
+from app.groq_agent import GroqAgent, GROQ_BASE_URL
 from app.demo_agent import DemoAgent
 from app.engine import DataEngine
-from app.main import app, sessions, _new_session
+from app.main import app, sessions, _new_session, _drop_session, _create_agent
 from app.openrouter_agent import OpenRouterAgent
 from app.agent import GeminiAgent
 from app.tools import ToolBox
@@ -107,6 +108,26 @@ def _openrouter_agent(monkeypatch, engine, responses, key=SECRET):
 
     monkeypatch.setattr(openrouter_module.httpx, "Client", Client)
     return OpenRouterAgent(engine, "openrouter-test-session", api_key=key), calls
+
+
+def _groq_agent(monkeypatch, engine, responses, key=SECRET):
+    calls, urls = [], []
+
+    class Client:
+        def __init__(self, **kwargs): pass
+        def __enter__(self): return self
+        def __exit__(self, *args): pass
+        def post(self, url, headers, json):
+            assert headers["Authorization"] == f"Bearer {key}"
+            calls.append(json)
+            urls.append(url)
+            response = responses[len(calls) - 1]
+            if isinstance(response, Exception):
+                raise response
+            return response
+
+    monkeypatch.setattr(openrouter_module.httpx, "Client", Client)
+    return GroqAgent(engine, "groq-test-session", api_key=key), calls, urls
 
 
 def _or_text(text="answer"):
@@ -465,3 +486,102 @@ def test_report_endpoint_hides_internal_failure(engine, monkeypatch):
         assert "Forecasting failed" in forecast.text
     finally:
         sessions.pop(sid, None)
+
+
+def test_groq_tool_call_executes_through_existing_toolbox(engine, monkeypatch):
+    tool_call = _OpenRouterResponse(payload={"choices": [{"message": {
+        "role": "assistant", "tool_calls": [{"id": "groq-call-1", "type": "function",
+            "function": {"name": "run_sql", "arguments":
+                         '{"query":"SELECT SUM(sales) AS total_sales FROM sales"}'}}]}}]})
+    agent, requests, urls = _groq_agent(monkeypatch, engine, [tool_call, _or_text("Total sales are 600.")])
+
+    events = list(agent.chat([], "What are total sales?"))
+
+    assert urls == [f"{GROQ_BASE_URL}/chat/completions"] * 2
+    assert requests[0]["model"] == config.GROQ_MODEL
+    assert {tool["function"]["name"] for tool in requests[0]["tools"]} == {
+        "profile_schema", "run_sql", "detect_anomalies", "build_chart"}
+    assert any(event["type"] == "sql" for event in events)
+    assert any("600" in event.get("text", "") for event in events)
+    tool_result = next(message for message in requests[1]["messages"] if message.get("role") == "tool")
+    assert "600" in tool_result["content"]
+    assert SECRET not in repr(events)
+
+
+@pytest.mark.parametrize(("response", "message"), [
+    (_OpenRouterResponse(401, {"error": {"message": SECRET}}), "Groq authentication failed"),
+    (_OpenRouterResponse(429, {"error": {"message": SECRET}}), "Groq rate limit reached"),
+    (_OpenRouterResponse(503, {"error": {"message": SECRET}}), "Groq request failed with HTTP 503"),
+    (TimeoutError(SECRET), "Groq request timed out"),
+])
+def test_groq_provider_failures_are_controlled_and_do_not_fallback(engine, monkeypatch, response, message):
+    agent, requests, _ = _groq_agent(monkeypatch, engine, [response])
+    events = list(agent.chat([], "question"))
+    assert any(e.get("type") == "error" and message in e.get("detail", "") for e in events)
+    assert len(requests) == 1
+    assert SECRET not in repr(events)
+
+
+def test_groq_malformed_response_is_controlled_and_does_not_leak_key(engine, monkeypatch):
+    agent, requests, _ = _groq_agent(monkeypatch, engine, [
+        _OpenRouterResponse(payload=ValueError(SECRET))])
+    events = list(agent.chat([], "question"))
+    assert any(e.get("type") == "error" and "malformed JSON" in e.get("detail", "") for e in events)
+    assert len(requests) == 1
+    assert SECRET not in repr(events)
+
+
+def test_groq_missing_key_and_explicit_selection_do_not_use_other_provider(engine, monkeypatch):
+    monkeypatch.setattr(config, "GROQ_API_KEY", "")
+    monkeypatch.setattr(config, "GEMINI_API_KEY", "configured-gemini-test-key")
+    monkeypatch.setattr(config, "OPENROUTER_API_KEY", "configured-openrouter-test-key")
+    monkeypatch.setattr(config, "LLM_PROVIDER", "groq")
+
+    assert config.mode() == "demo"
+    with pytest.raises(RuntimeError, match="GROQ_API_KEY is not configured"):
+        GroqAgent(engine, "groq-no-key")
+    assert isinstance(_create_agent(engine, "groq-no-key", provider="groq"), DemoAgent)
+
+
+def test_groq_provider_switch_uses_its_key_without_reusing_previous_provider_key(engine, monkeypatch):
+    old_key = "openrouter-session-test-key"
+    groq_key = "groq-configured-test-key"
+    monkeypatch.setattr(config, "GROQ_API_KEY", groq_key)
+    monkeypatch.setattr(config, "ALLOW_KEY_OVERRIDE", False)
+    sess = _new_session(provider="openrouter", api_key=old_key)
+    try:
+        response = TestClient(app).post("/api/config/switch", json={
+            "provider": "groq", "session_id": sess["id"]})
+        assert response.status_code == 200
+        assert response.json()["mode"] == "groq"
+        assert response.json()["model"] == config.GROQ_MODEL
+        assert response.json()["groq_configured"] is True
+        assert isinstance(sess["agent"], GroqAgent)
+        assert sess["agent"].api_key == groq_key
+        assert sess["api_key"] is None
+        assert old_key not in response.text
+        assert groq_key not in response.text
+    finally:
+        _drop_session(sess["id"])
+
+
+def test_chat_provider_change_does_not_pass_previous_session_key_to_groq(engine, monkeypatch):
+    old_key = "previous-session-provider-test-key"
+    groq_key = "groq-environment-test-key"
+    monkeypatch.setattr(config, "GROQ_API_KEY", groq_key)
+    sess = _new_session(provider="demo", api_key=old_key)
+    sess["engine"] = engine
+    sess["agent"] = DemoAgent(engine, sess["id"])
+    monkeypatch.setattr(GroqAgent, "chat", lambda self, contents, message: iter([
+        {"type": "token", "text": "mock answer"}, {"type": "done"}]))
+    try:
+        response = TestClient(app).post("/api/chat", json={
+            "session_id": sess["id"], "message": "question", "provider": "groq"})
+        assert response.status_code == 200
+        assert isinstance(sess["agent"], GroqAgent)
+        assert sess["agent"].api_key == groq_key
+        assert sess["api_key"] is None
+        assert old_key not in response.text and groq_key not in response.text
+        assert "mock answer" in response.text
+    finally:
+        _drop_session(sess["id"])

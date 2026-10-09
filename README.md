@@ -41,7 +41,7 @@ Other captures: [upload](screenshot/upload.png), [spreadsheet](screenshot/spread
 | Area | AskCSV implementation |
 |---|---|
 | Data upload | CSV, XLS, and XLSX ingestion; workbook sheets are represented as tables where supported. Upload size, file count, and batch limits are enforced. |
-| Natural-language analysis | Gemini, OpenRouter, or an offline deterministic DemoAgent can answer supported questions using validated tools. |
+| Natural-language analysis | Gemini, Groq, OpenRouter, or an offline deterministic DemoAgent can answer supported questions using validated tools. |
 | SQL and results | The agent can generate and execute read-only DuckDB SQL. The chat stream can show SQL, result data, charts, and a natural-language explanation. |
 | Conversation | Session-scoped, bounded recent history supports follow-up questions; starting a new chat clears conversation context while retaining the dataset. |
 | Visual analysis | Plotly chart specifications and dashboard summaries, with separate views for data quality, statistical anomalies, forecasts, and reports. |
@@ -60,6 +60,7 @@ flowchart TD
   API --> SM[In-memory session manager]
   SM --> Agent[Agent interface]
   Agent --> Gemini[Gemini]
+  Agent --> Groq[Groq]
   Agent --> OR[OpenRouter]
   Agent --> Demo[Offline DemoAgent]
   Agent --> TB[ToolBox]
@@ -81,7 +82,7 @@ These routes are declared by the FastAPI application in `app/main.py`. Chat is s
 |---|---|---|---|
 | `GET` | `/api/health` | None | Health and provider-mode metadata; does not return credentials. |
 | `GET` | `/api/config` | None | Current provider/model configuration and key-presence indicators. |
-| `POST` | `/api/config/switch` | JSON: required `provider` (`gemini`, `openrouter`, or `demo`; handler also accepts `auto`); optional `model`, `api_key`, `session_id` | Applies provider settings for the session and returns configuration status. Runtime key overrides can be disabled by configuration. |
+| `POST` | `/api/config/switch` | JSON: required `provider` (`gemini`, `groq`, `openrouter`, or `demo`; handler also accepts `auto`); optional `model`, `api_key`, `session_id` | Applies provider settings for the session and returns configuration status. Runtime key overrides can be disabled by configuration. |
 | `POST` | `/api/upload` | Multipart form with one or more `files` entries | Ingests CSV, XLS, or XLSX files and returns the created session and table metadata. |
 | `POST` | `/api/sample` | None | Loads the bundled `data/sales.csv` sample into a new session. |
 | `POST` | `/api/chat` | JSON: `session_id`, `message`; optional `provider`, `model` | Streams chat events as `text/event-stream`, including analysis events and completion. |
@@ -108,6 +109,7 @@ ask-csv/
 │   ├── engine.py                # Per-session DuckDB data access and SQL validation
 │   ├── tools.py                 # Agent-callable analysis and export tools
 │   ├── agent.py                 # Agent interface/provider selection
+│   ├── groq_agent.py            # Groq tool-calling provider adapter
 │   ├── openrouter_agent.py      # OpenRouter integration
 │   ├── demo_agent.py            # Offline deterministic analyst
 │   ├── conversation.py          # Bounded conversation history
@@ -144,7 +146,7 @@ ask-csv/
 
 - **Backend:** Python, FastAPI, DuckDB, Pandas
 - **Frontend:** HTML, CSS, and JavaScript, served from the FastAPI application
-- **AI providers:** Google Gemini and OpenRouter, with an offline DemoAgent when no usable provider key is configured
+- **AI providers:** Google Gemini, Groq, and OpenRouter, with an offline DemoAgent when no selected provider key is configured
 - **Testing:** pytest, deterministic local evaluation fixtures, and mocked provider tests
 
 ## How to Use AskCSV
@@ -158,7 +160,7 @@ ask-csv/
 
 ## Conversation Context
 
-Each session retains a bounded recent history (12 turns by default). Gemini and OpenRouter receive provider-appropriate conversation messages; DemoAgent uses the same session’s recent exchanges to resolve supported follow-up references. `/api/chat/new` clears conversation history while keeping that session’s datasets. Session state is in memory and is lost on restart.
+Each session retains a bounded recent history (12 turns by default). Gemini receives provider-specific messages; Groq and OpenRouter use the OpenAI-compatible chat-completions tool protocol. DemoAgent uses the same session’s recent exchanges to resolve supported follow-up references. `/api/chat/new` clears conversation history while keeping that session’s datasets. Session state is in memory and is lost on restart.
 
 ## Analytics Methods
 
@@ -191,6 +193,8 @@ Copy `.env.example` to `.env` if you want to configure the application. Leave ke
 | `OPENROUTER_MODEL` | `openai/gpt-4o-mini` | OpenRouter model identifier. |
 | `GEMINI_API_KEY` | empty | Google Gemini credential. |
 | `GEMINI_MODEL` | `gemini-3.6-flash` | Gemini model identifier. |
+| `GROQ_API_KEY` | empty | Groq credential. Store this as a secret in hosted deployments. |
+| `GROQ_MODEL` | `openai/gpt-oss-20b` | Groq model ID; supports local function/tool use in Groq's API. |
 | `MAX_ROWS_TO_LLM` | `20` | Maximum result rows sent to a provider. |
 | `MAX_UPLOAD_MB` | `50` | Per-file upload limit. |
 | `MAX_SESSION_UPLOAD_MB` | `200` | Aggregate uploaded bytes for the upload batch that creates a session. |
@@ -248,6 +252,8 @@ The current live deployment is hosted on FastAPI Cloud Hobby at [https://ask-csv
 
 The frontend and API are served from the same origin. The live service is limited to one maximum replica; Hobby scales to zero while idle, so the first request after idle may take longer and in-memory sessions can be lost on restart or scale-down. `/api/health` reports the active provider mode and key-presence flags without returning key values.
 
+To move the live service to Groq, set `LLM_PROVIDER=groq` and add `GROQ_API_KEY` as a secret in FastAPI Cloud, then redeploy. Set `GROQ_MODEL` only if choosing another supported Groq model. The deployed service remains on its currently configured provider until those dashboard settings are changed and a deployment completes. Groq is opt-in; a missing Groq key selects DemoAgent rather than switching to Gemini or OpenRouter. Request failures do not trigger cross-provider fallback. Groq usage is subject to the account's model availability, rate limits, and pricing; see [Groq supported models and pricing](https://console.groq.com/docs/models) and [tool-use support](https://console.groq.com/docs/tool-use/overview).
+
 `render.yaml` remains in the repository as an alternative deployment configuration; it is not the current live host. Its one-service setup installs `requirements.txt`, runs Uvicorn, and checks `/api/health`.
 
 The deployment is intended for a controlled demo with non-sensitive datasets. No authentication is provided. Uploaded files and exports use local storage and may be ephemeral; do not use private datasets.
@@ -291,7 +297,7 @@ See [docs/ASSIGNMENT_MATRIX.md](docs/ASSIGNMENT_MATRIX.md) for the implementatio
 
 ## Testing and Verification
 
-In this README update, the full suite completed with **154 passed, 2 skipped** and the evaluation suite with **12 passed**. `pip check` reported no broken requirements. Pytest emitted one Starlette/httpx deprecation warning. Docker CLI is installed, but its Linux engine was unavailable, so image build/runtime were not verified. The live homepage and `/api/health` results below are historical checks from the earlier submission-preparation run, not rechecked in this README update; both returned HTTP 200 and health reported Gemini mode. See [docs/changes/011-integration-submission-readiness.md](docs/changes/011-integration-submission-readiness.md) for that run's record.
+For the Groq integration working-tree verification, the full suite completed with **164 passed, 2 skipped** and the evaluation suite with **12 passed**. `pip check` reported no broken requirements, `node --check frontend/js/app.js` passed, and `git diff --check` passed. Pytest emitted one Starlette/httpx deprecation warning. Provider tests use mocks; these results do **not** verify live Groq credentials or a deployment. Docker CLI is installed, but its Linux engine was unavailable, so image build/runtime were not verified. The live homepage and `/api/health` results below are historical checks from the earlier submission-preparation run, not rechecked for this provider change; both returned HTTP 200 and health reported Gemini mode. See [docs/changes/011-integration-submission-readiness.md](docs/changes/011-integration-submission-readiness.md) for that run's record and [docs/changes/012-groq-provider.md](docs/changes/012-groq-provider.md) for this integration's verification record.
 
 ```powershell
 python -m pytest -q

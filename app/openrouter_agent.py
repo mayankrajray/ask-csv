@@ -158,12 +158,23 @@ def _openrouter_tools():
 
 
 class OpenRouterAgent:
+    provider_name = "OpenRouter"
+    api_url = OPENROUTER_URL
+
     def __init__(self, engine, session_id: str, api_key: str | None = None, model: str | None = None) -> None:
         self.tb = ToolBox(engine, session_id)
         self.api_key = api_key or config.OPENROUTER_API_KEY
         self.model = model or config.OPENROUTER_MODEL
         if not self.api_key:
             raise RuntimeError("OPENROUTER_API_KEY is not configured.")
+
+    def _request_headers(self):
+        return {
+            "Authorization": f"Bearer {self.api_key}",
+            "HTTP-Referer": "https://github.com/askcsv",
+            "X-Title": "AskCSV AI Data Analyst",
+            "Content-Type": "application/json",
+        }
 
     def chat(self, contents: list, message: str) -> Generator[dict, None, None]:
         """Generator of SSE events. Mutates `contents` in place (session messages)."""
@@ -185,12 +196,7 @@ class OpenRouterAgent:
         contents.append({"role": "user", "content": message})
         tools = _openrouter_tools()
 
-        headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "HTTP-Referer": "https://github.com/askcsv",
-            "X-Title": "AskCSV AI Data Analyst",
-            "Content-Type": "application/json",
-        }
+        headers = self._request_headers()
 
         tool_calls_used = 0
         for _ in range(config.MAX_TOOL_STEPS):
@@ -203,9 +209,9 @@ class OpenRouterAgent:
 
             try:
                 with httpx.Client(timeout=60.0) as client:
-                    resp = client.post(OPENROUTER_URL, headers=headers, json=payload)
+                    resp = client.post(self.api_url, headers=headers, json=payload)
             except Exception as exc:
-                yield failed(provider_failure("OpenRouter", error=exc))
+                yield failed(provider_failure(self.provider_name, error=exc))
                 return
 
             status_code = getattr(resp, "status_code", None)
@@ -213,7 +219,7 @@ class OpenRouterAgent:
                 yield failed("OpenRouter returned a malformed response.")
                 return
             if status_code != 200:
-                yield failed(provider_failure("OpenRouter", status_code=status_code))
+                yield failed(provider_failure(self.provider_name, status_code=status_code))
                 return
 
             try:

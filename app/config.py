@@ -17,6 +17,8 @@ except ImportError:
 LLM_PROVIDER = os.getenv("LLM_PROVIDER", "openrouter").strip().lower()  # default to "openrouter"
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.6-flash").strip()
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "").strip()
+GROQ_MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-20b").strip()
 
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "").strip()
 OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "openai/gpt-4o-mini").strip()
@@ -42,7 +44,11 @@ for _d in (UPLOAD_DIR, EXPORT_DIR):
 
 
 def mode() -> str:
-    """'openrouter' or 'gemini' when configured, otherwise 'demo'."""
+    """Return the selected configured provider, or demo when unavailable."""
+    # Groq is opt-in via LLM_PROVIDER; do not silently switch from it to another
+    # provider if its credential is missing.
+    if LLM_PROVIDER == "groq":
+        return "groq" if GROQ_API_KEY else "demo"
     if LLM_PROVIDER == "openrouter" and OPENROUTER_API_KEY:
         return "openrouter"
     if LLM_PROVIDER == "gemini" and GEMINI_API_KEY:
@@ -60,4 +66,6 @@ def active_model() -> str:
         return OPENROUTER_MODEL
     if m == "gemini":
         return GEMINI_MODEL
+    if m == "groq":
+        return GROQ_MODEL
     return "offline-demo"

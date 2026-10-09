@@ -22,7 +22,7 @@ def _events(text):
 def test_health():
     r = client.get("/api/health")
     assert r.status_code == 200
-    assert r.json()["mode"] in ("demo", "gemini", "openrouter")
+    assert r.json()["mode"] in ("demo", "gemini", "openrouter", "groq")
 
 
 def test_upload_rejects_non_csv():
@@ -81,6 +81,13 @@ def test_switch_requires_key_for_remote_providers(monkeypatch):
     monkeypatch.setattr(config, "OPENROUTER_API_KEY", "")
     r = client.post("/api/config/switch", json={"provider": "openrouter"})
     assert r.status_code == 400
+
+
+def test_switch_requires_groq_key(monkeypatch):
+    monkeypatch.setattr(config, "GROQ_API_KEY", "")
+    r = client.post("/api/config/switch", json={"provider": "groq"})
+    assert r.status_code == 400
+    assert "GROQ_API_KEY" in r.json()["detail"]
 
 
 def test_unknown_table_is_404():

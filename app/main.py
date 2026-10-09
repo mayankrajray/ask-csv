@@ -25,6 +25,7 @@ from . import analytics, config
 from .agent import GeminiAgent
 from .demo_agent import DemoAgent
 from .engine import DataEngine
+from .groq_agent import GroqAgent
 from .openrouter_agent import OpenRouterAgent
 
 @asynccontextmanager
@@ -170,6 +171,13 @@ def _create_agent(engine: DataEngine, sid: str, provider: str | None = None, mod
                 return GeminiAgent(engine, sid, api_key=key, model=model or config.GEMINI_MODEL)
             except Exception:
                 return DemoAgent(engine, sid)
+    elif prov == "groq":
+        key = api_key or config.GROQ_API_KEY
+        if key:
+            try:
+                return GroqAgent(engine, sid, api_key=key, model=model or config.GROQ_MODEL)
+            except Exception:
+                return DemoAgent(engine, sid)
     return DemoAgent(engine, sid)
 
 
@@ -236,12 +244,13 @@ def health():
         "model": config.active_model(),
         "gemini_configured": bool(config.GEMINI_API_KEY),
         "openrouter_configured": bool(config.OPENROUTER_API_KEY),
+        "groq_configured": bool(config.GROQ_API_KEY),
     }
 
 
 class SwitchConfigBody(BaseModel):
-    provider: str                      # "gemini", "openrouter", "demo"
-    model: Optional[str] = None        # e.g. "gemini-3.6-flash", "openai/gpt-4o-mini", etc.
+    provider: str                      # "gemini", "openrouter", "groq", "demo"
+    model: Optional[str] = None        # Provider-specific model ID
     api_key: Optional[str] = None      # Optional key update
     session_id: Optional[str] = None   # Update current session agent if provided
 
@@ -269,6 +278,11 @@ def get_config():
                 "~openai/gpt-sol-latest",
             ],
         },
+        "groq": {
+            "configured": bool(config.GROQ_API_KEY),
+            "model": config.GROQ_MODEL,
+            "models": [config.GROQ_MODEL],
+        },
     }
 
 
@@ -277,8 +291,8 @@ def switch_config(body: SwitchConfigBody):
     prov = body.provider.lower().strip()
     if body.api_key and not config.ALLOW_KEY_OVERRIDE:
         raise HTTPException(403, "Setting API keys at runtime is disabled on this server.")
-    if prov not in ("gemini", "openrouter", "demo", "auto"):
-        raise HTTPException(400, "Invalid provider. Choose 'gemini', 'openrouter', or 'demo'.")
+    if prov not in ("gemini", "openrouter", "groq", "demo", "auto"):
+        raise HTTPException(400, "Invalid provider. Choose 'gemini', 'openrouter', 'groq', or 'demo'.")
 
     sess = _session_for(body.session_id)
 
@@ -291,15 +305,23 @@ def switch_config(body: SwitchConfigBody):
         has_key = bool(body.api_key or (sess and sess.get("api_key") and sess.get("provider") == "openrouter") or config.OPENROUTER_API_KEY)
         if not has_key:
             raise HTTPException(400, "No OpenRouter API key configured. Add OPENROUTER_API_KEY to .env or enter a key.")
+    elif prov == "groq":
+        has_key = bool(body.api_key or (sess and sess.get("api_key") and sess.get("provider") == "groq") or config.GROQ_API_KEY)
+        if not has_key:
+            raise HTTPException(400, "No Groq API key configured. Add GROQ_API_KEY to the environment.")
 
     if not sess:
         raise HTTPException(400, "A valid session_id is required to switch provider configuration.")
 
     # Provider and key overrides are strictly session-scoped. Build the new agent
     # before changing live session state so a failed switch leaves it usable.
-    new_key = body.api_key.strip() if body.api_key else sess.get("api_key")
+    new_key = body.api_key.strip() if body.api_key else (
+        sess.get("api_key") if sess.get("provider") == prov else None
+    )
     new_model = body.model or (
-        config.GEMINI_MODEL if prov == "gemini" else config.OPENROUTER_MODEL if prov == "openrouter" else "offline-demo"
+        config.GEMINI_MODEL if prov == "gemini" else
+        config.OPENROUTER_MODEL if prov == "openrouter" else
+        config.GROQ_MODEL if prov == "groq" else "offline-demo"
     )
     try:
         new_agent = _create_agent(sess["engine"], body.session_id, prov, new_model, new_key)
@@ -316,6 +338,7 @@ def switch_config(body: SwitchConfigBody):
     active_model = sess["model"]
     gemini_configured = bool(config.GEMINI_API_KEY or (sess.get("provider") == "gemini" and sess.get("api_key")))
     openrouter_configured = bool(config.OPENROUTER_API_KEY or (sess.get("provider") == "openrouter" and sess.get("api_key")))
+    groq_configured = bool(config.GROQ_API_KEY or (sess.get("provider") == "groq" and sess.get("api_key")))
 
     return {
         "ok": True,
@@ -323,6 +346,7 @@ def switch_config(body: SwitchConfigBody):
         "model": active_model,
         "gemini_configured": gemini_configured,
         "openrouter_configured": openrouter_configured,
+        "groq_configured": groq_configured,
     }
 
 
@@ -449,16 +473,19 @@ def chat(body: ChatBody):
 
     # Update agent dynamically if provider / model passed in chat request
     if body.provider and (body.provider != sess.get("provider") or (body.model and body.model != sess.get("model"))):
-        new_model = body.model or config.active_model()
+        new_provider = body.provider.lower().strip()
+        new_model = body.model or (config.GROQ_MODEL if new_provider == "groq" else config.active_model())
+        provider_key = sess.get("api_key") if sess.get("provider") == new_provider else None
         try:
-            new_agent = _create_agent(sess["engine"], body.session_id, body.provider, new_model, sess.get("api_key"))
+            new_agent = _create_agent(sess["engine"], body.session_id, new_provider, new_model, provider_key)
         except Exception:
             raise HTTPException(503, "The requested provider could not be initialized; existing session settings were kept.") from None
-        if body.provider != sess.get("provider"):
+        if new_provider != sess.get("provider"):
             sess["contents"].clear()
         sess["agent"] = new_agent
-        sess["provider"] = body.provider
+        sess["provider"] = new_provider
         sess["model"] = new_model
+        sess["api_key"] = provider_key
 
     start_time = time.time()
 

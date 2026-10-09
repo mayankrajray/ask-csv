@@ -6,7 +6,7 @@ Statuses describe the implementation present in this repository. `PARTIAL` means
 |---|---|---|---|
 | Upload one or more CSV files | Bounded multipart upload into an isolated session; file/count/aggregate upload-batch size validation | `app/main.py`; `tests/test_security.py`, `tests/test_ingestion.py`, `tests/test_storage_security.py` | PASS |
 | Excel ingestion | XLS/XLSX parsing; workbook sheets are loaded as tables where supported | `app/engine.py`; `tests/test_ingestion.py` | PASS |
-| Natural-language dataset analysis | Gemini, OpenRouter, and offline DemoAgent call the ToolBox | `app/agent.py`, `app/openrouter_agent.py`, `app/demo_agent.py`; `tests/test_agent_reliability.py`, `tests/evaluation/` | PASS |
+| Natural-language dataset analysis | Gemini, Groq, OpenRouter, and offline DemoAgent call the ToolBox | `app/agent.py`, `app/groq_agent.py`, `app/openrouter_agent.py`, `app/demo_agent.py`; `tests/test_agent_reliability.py`, `tests/evaluation/` | PASS |
 | Business insights and summaries | SQL-backed analysis answers and report/dashboard summaries | `app/tools.py`, `app/analytics.py`; `tests/test_analytics.py`, `tests/evaluation/` | PASS |
 | Charts | Chart specifications support implemented chart types and are rendered by frontend Plotly | `app/charts.py`, `frontend/js/app.js`; `tests/test_analytics.py`, evaluation chart case | PASS |
 | Generate/use SQL or Pandas | Agent uses guarded read-only SQL through DuckDB; ingestion/analytics use Pandas | `app/engine.py`, `app/tools.py`; `tests/test_engine.py` | PASS |

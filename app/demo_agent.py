@@ -13,7 +13,7 @@ from . import config
 from .conversation import trim_messages
 from .tools import ToolBox
 
-DEMO_NOTE = ("\n\n*Offline demo mode — set `GEMINI_API_KEY` in `.env` to unlock "
+DEMO_NOTE = ("\n\n*Offline demo mode — configure a Gemini, Groq, or OpenRouter API key to unlock "
              "full LLM reasoning over any question.*")
 
 VALUE_KEYS = ("revenue", "amount", "sales", "total", "spend", "price", "qty", "quantity")
@@ -305,6 +305,6 @@ class DemoAgent:
                 f"- Detect anomalies in the dataset\n"
                 f"- Generate SQL for this analysis\n\n"
                 f"Your data: {digest}\n\n"
-                f"With a `GEMINI_API_KEY` configured I can answer arbitrary questions, chain tools, "
+                f"With an LLM provider configured I can answer arbitrary questions, chain tools, "
                 f"and reason about the results." + DEMO_NOTE)
         yield from stream_tokens(text)

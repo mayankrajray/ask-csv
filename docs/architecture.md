@@ -12,6 +12,7 @@ flowchart TD
   Sessions --> State[Session: DuckDB engine · conversation · provider overrides · file metadata]
   API --> Agent[Agent selection]
   Agent --> Gemini[Gemini agent]
+  Agent --> Groq[Groq agent]
   Agent --> OpenRouter[OpenRouter agent]
   Agent --> Demo[Offline DemoAgent]
   Agent --> Tools[ToolBox]
@@ -28,7 +29,7 @@ The frontend is served by FastAPI from `frontend/`; the repository has no npm bu
 
 ## Agent providers
 
-The configured provider selects Gemini or OpenRouter when a usable key is present. If neither provider is configured, the application runs with DemoAgent, which uses deterministic patterns and local tools without an external API. Provider configuration overrides belong to the in-memory session. Tool calls flow through `ToolBox`; model-provided SQL is checked before DuckDB executes it.
+The configured provider selects Gemini, Groq, or OpenRouter when its key is present. Groq uses the OpenAI-compatible chat-completions tool-call protocol with the same local ToolBox dispatch loop as OpenRouter. Groq is opt-in: if it is selected without a Groq key, the app uses DemoAgent rather than switching to another provider. Provider configuration overrides belong to the in-memory session. Tool calls flow through `ToolBox`; model-provided SQL is checked before DuckDB executes it. Provider request failures do not trigger cross-provider fallback.
 
 ## Analytics and tools
 
