@@ -117,6 +117,14 @@ docker compose up
 
 Then visit <http://localhost:8000>. Configure provider variables in an untracked `.env` file if needed. The compose service maps the local `data/` directory into the container; sessions remain in memory, and uploads/exports use the container’s local filesystem. The image does not include `.env` or development files in its build context.
 
+## Render demo deployment
+
+The included `render.yaml` defines one Python web service from the `main` branch. In Render, create or sync the Blueprint and provide `GEMINI_API_KEY` and/or `OPENROUTER_API_KEY` as dashboard secrets; never add credentials to the repository. `ALLOW_KEY_OVERRIDE` is set to `false`, so keys must come from the service environment. If neither provider has a usable key, AskCSV uses its offline DemoAgent.
+
+The service installs `requirements.txt`, starts with `uvicorn app.main:app --host 0.0.0.0 --port $PORT`, and checks `/api/health`. FastAPI serves both the frontend and API on the same origin, so the Blueprint leaves `ALLOWED_ORIGINS` unset and does not need a separate frontend hostname. If you later host the frontend separately, configure `ALLOWED_ORIGINS` to that exact origin in the Render dashboard.
+
+This configuration is for a controlled demo using non-sensitive datasets. Sessions and provider overrides are in memory; one service instance/process is required, and sessions are lost on restart. Uploads and exports are in local directories and may be lost on restart or when the host filesystem is ephemeral. No authentication is provided, so do not use private datasets. Persistent storage can preserve files but does not make in-memory sessions durable or support multiple instances.
+
 ## Sample data
 
 `data/sales.csv` is a small retail dataset for the demo and bundled sample action. The data includes deliberate quality/anomaly examples. Rebuild it with `python data/make_sample_dataset.py`.
