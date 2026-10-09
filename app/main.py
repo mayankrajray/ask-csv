@@ -6,8 +6,10 @@ from __future__ import annotations
 import json
 import logging
 import re
+import shutil
 import time
 import uuid
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Optional
 
@@ -25,8 +27,16 @@ from .demo_agent import DemoAgent
 from .engine import DataEngine
 from .openrouter_agent import OpenRouterAgent
 
+@asynccontextmanager
+async def lifespan(_app):
+    removed = _cleanup_expired_storage()
+    if removed:
+        log.info("Removed storage for %d expired sessions", removed)
+    yield
+
+
 app = FastAPI(title="AskCSV", version="1.0.0",
-              description="An AI data analyst you can talk to.")
+              description="An AI data analyst you can talk to.", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -40,6 +50,100 @@ log = logging.getLogger("askcsv")
 sessions: dict[str, dict] = {}
 
 
+def _remove_session_storage(sid: str) -> None:
+    """Remove this session's local files without following paths outside storage roots."""
+    upload_root = config.UPLOAD_DIR.resolve()
+    for path in config.UPLOAD_DIR.glob(f"{sid}_*"):
+        try:
+            if path.is_symlink():
+                path.unlink(missing_ok=True)
+            elif path.resolve().is_relative_to(upload_root) and path.is_file():
+                path.unlink(missing_ok=True)
+        except (OSError, RuntimeError, ValueError):
+            log.warning("Could not remove an upload file during session cleanup")
+
+    export_path = config.EXPORT_DIR / sid
+    try:
+        if export_path.is_symlink():
+            export_path.unlink(missing_ok=True)
+        elif export_path.resolve().is_relative_to(config.EXPORT_DIR.resolve()) and export_path.is_dir():
+            shutil.rmtree(export_path)
+    except (OSError, RuntimeError, ValueError):
+        log.warning("Could not remove exports during session cleanup")
+
+
+def _cleanup_expired_storage(now: float | None = None) -> int:
+    """Remove files for sessions older than the in-memory session retention window."""
+    cutoff = (time.time() if now is None else now) - config.SESSION_STORAGE_RETENTION_HOURS * 3600
+    candidates: dict[str, list[float]] = {}
+    try:
+        if config.UPLOAD_DIR.exists():
+            for path in config.UPLOAD_DIR.iterdir():
+                match = re.match(r"^([0-9a-f]{32})_", path.name)
+                if match:
+                    candidates.setdefault(match.group(1), []).append(path.stat().st_mtime)
+        if config.EXPORT_DIR.exists():
+            for path in config.EXPORT_DIR.iterdir():
+                if re.fullmatch(r"[0-9a-f]{32}", path.name):
+                    candidates.setdefault(path.name, []).append(path.stat().st_mtime)
+    except OSError:
+        log.warning("Could not inspect local storage for expired sessions")
+        return 0
+
+    removed = 0
+    for sid, timestamps in candidates.items():
+        if sid not in sessions and timestamps and max(timestamps) < cutoff:
+            _remove_session_storage(sid)
+            removed += 1
+    return removed
+
+
+def _drop_session(sid: str) -> None:
+    """Forget an in-memory session and remove its owned local files."""
+    sess = sessions.pop(sid, None)
+    if not sess:
+        return
+    engine = sess.get("engine")
+    contents = sess.get("contents")
+    if isinstance(contents, list):
+        contents.clear()
+    query_logs = sess.get("query_logs")
+    if isinstance(query_logs, list):
+        query_logs.clear()
+    sess["api_key"] = None
+    sess["provider"] = None
+    sess["model"] = None
+    sess["agent"] = None
+    sess["engine"] = None
+    try:
+        if engine is not None:
+            engine.close()
+    except Exception:
+        pass
+    _remove_session_storage(sid)
+
+
+def _expire_idle_sessions(now: float | None = None) -> int:
+    current = time.time() if now is None else now
+    idle_seconds = config.SESSION_STORAGE_RETENTION_HOURS * 3600
+    expired = [sid for sid, sess in sessions.items()
+               if current - sess.get("last_seen", sess.get("created", current)) >= idle_seconds]
+    for sid in expired:
+        _drop_session(sid)
+    _cleanup_expired_storage(now=current)
+    return len(expired)
+
+
+def _session_for(sid: str | None) -> dict | None:
+    if not sid:
+        return None
+    _expire_idle_sessions()
+    sess = sessions.get(sid)
+    if sess:
+        sess["last_seen"] = time.time()
+    return sess
+
+
 # ------------------------------------------------------------------ helpers
 def _sanitize_table(stem: str) -> str:
     t = re.sub(r"[^0-9a-zA-Z_]+", "_", stem).strip("_").lower()
@@ -47,42 +151,62 @@ def _sanitize_table(stem: str) -> str:
         t = "table"
     if not t[0].isalpha():
         t = "t_" + t
-    return t
+    return t[:64].rstrip("_") or "table"
 
 
-def _create_agent(engine: DataEngine, sid: str, provider: str | None = None, model: str | None = None):
+def _create_agent(engine: DataEngine, sid: str, provider: str | None = None, model: str | None = None, api_key: str | None = None):
     prov = (provider or config.mode()).lower()
-    if prov == "openrouter" and (config.OPENROUTER_API_KEY or provider == "openrouter"):
-        try:
-            return OpenRouterAgent(engine, sid, model=model or config.OPENROUTER_MODEL)
-        except Exception:
-            return DemoAgent(engine, sid)
-    elif prov == "gemini" and (config.GEMINI_API_KEY or provider == "gemini"):
-        try:
-            return GeminiAgent(engine, sid)
-        except Exception:
-            return DemoAgent(engine, sid)
+    if prov == "openrouter":
+        key = api_key or config.OPENROUTER_API_KEY
+        if key:
+            try:
+                return OpenRouterAgent(engine, sid, api_key=key, model=model or config.OPENROUTER_MODEL)
+            except Exception:
+                return DemoAgent(engine, sid)
+    elif prov == "gemini":
+        key = api_key or config.GEMINI_API_KEY
+        if key:
+            try:
+                return GeminiAgent(engine, sid, api_key=key, model=model or config.GEMINI_MODEL)
+            except Exception:
+                return DemoAgent(engine, sid)
     return DemoAgent(engine, sid)
 
 
-def _new_session(provider: str | None = None, model: str | None = None) -> dict:
-    if len(sessions) >= config.SESSION_LIMIT:
+def _new_session(provider: str | None = None, model: str | None = None, api_key: str | None = None) -> dict:
+    _expire_idle_sessions()
+    while len(sessions) >= config.SESSION_LIMIT:
         oldest = min(sessions.values(), key=lambda s: s["created"])
-        sessions.pop(oldest["id"], None)
+        _drop_session(oldest["id"])
     sid = uuid.uuid4().hex
-    engine = DataEngine()
-    agent = _create_agent(engine, sid, provider, model)
-    sessions[sid] = {
-        "id": sid,
-        "engine": engine,
-        "agent": agent,
-        "provider": provider or config.mode(),
-        "model": model or config.active_model(),
-        "contents": [],
-        "query_logs": [],
-        "created": time.time(),
-    }
-    return sessions[sid]
+    engine = None
+    try:
+        engine = DataEngine()
+        agent = _create_agent(engine, sid, provider, model, api_key)
+        sessions[sid] = {
+            "id": sid,
+            "engine": engine,
+            "agent": agent,
+            "provider": provider or config.mode(),
+            "model": model or config.active_model(),
+            "api_key": api_key,
+            "contents": [],
+            "query_logs": [],
+            "created": time.time(),
+            "last_seen": time.time(),
+        }
+        return sessions[sid]
+    except Exception:
+        if sid in sessions:
+            _drop_session(sid)
+        else:
+            if engine is not None:
+                try:
+                    engine.close()
+                except Exception:
+                    pass
+            _remove_session_storage(sid)
+        raise
 
 
 def _quality(engine: DataEngine, table: str) -> dict:
@@ -156,41 +280,49 @@ def switch_config(body: SwitchConfigBody):
     if prov not in ("gemini", "openrouter", "demo", "auto"):
         raise HTTPException(400, "Invalid provider. Choose 'gemini', 'openrouter', or 'demo'.")
 
-    if prov == "gemini" and not (body.api_key or config.GEMINI_API_KEY):
-        raise HTTPException(400, "No Gemini API key configured. Add GEMINI_API_KEY to .env or enter a key.")
-    if prov == "openrouter" and not (body.api_key or config.OPENROUTER_API_KEY):
-        raise HTTPException(400, "No OpenRouter API key configured. Add OPENROUTER_API_KEY to .env or enter a key.")
+    sess = _session_for(body.session_id)
 
+    # Check whether the requested provider has valid credentials
     if prov == "gemini":
-        config.LLM_PROVIDER = "gemini"
-        if body.model:
-            config.GEMINI_MODEL = body.model.strip()
-        if body.api_key:
-            config.GEMINI_API_KEY = body.api_key.strip()
+        has_key = bool(body.api_key or (sess and sess.get("api_key") and sess.get("provider") == "gemini") or config.GEMINI_API_KEY)
+        if not has_key:
+            raise HTTPException(400, "No Gemini API key configured. Add GEMINI_API_KEY to .env or enter a key.")
     elif prov == "openrouter":
-        config.LLM_PROVIDER = "openrouter"
-        if body.model:
-            config.OPENROUTER_MODEL = body.model.strip()
-        if body.api_key:
-            config.OPENROUTER_API_KEY = body.api_key.strip()
-    elif prov == "demo":
-        config.LLM_PROVIDER = "demo"
+        has_key = bool(body.api_key or (sess and sess.get("api_key") and sess.get("provider") == "openrouter") or config.OPENROUTER_API_KEY)
+        if not has_key:
+            raise HTTPException(400, "No OpenRouter API key configured. Add OPENROUTER_API_KEY to .env or enter a key.")
 
-    # If session_id is active, update the session's agent immediately
-    if body.session_id and body.session_id in sessions:
-        sess = sessions[body.session_id]
-        if sess.get("provider") != prov:
-            sess["contents"] = []
-        sess["agent"] = _create_agent(sess["engine"], body.session_id, prov, body.model)
-        sess["provider"] = prov
-        sess["model"] = body.model or config.active_model()
+    if not sess:
+        raise HTTPException(400, "A valid session_id is required to switch provider configuration.")
+
+    # Provider and key overrides are strictly session-scoped. Build the new agent
+    # before changing live session state so a failed switch leaves it usable.
+    new_key = body.api_key.strip() if body.api_key else sess.get("api_key")
+    new_model = body.model or (
+        config.GEMINI_MODEL if prov == "gemini" else config.OPENROUTER_MODEL if prov == "openrouter" else "offline-demo"
+    )
+    try:
+        new_agent = _create_agent(sess["engine"], body.session_id, prov, new_model, new_key)
+    except Exception:
+        raise HTTPException(503, "The requested provider could not be initialized; existing session settings were kept.") from None
+    if sess.get("provider") != prov:
+        sess["contents"].clear()
+    sess["api_key"] = new_key
+    sess["provider"] = prov
+    sess["model"] = new_model
+    sess["agent"] = new_agent
+
+    mode = sess["provider"]
+    active_model = sess["model"]
+    gemini_configured = bool(config.GEMINI_API_KEY or (sess.get("provider") == "gemini" and sess.get("api_key")))
+    openrouter_configured = bool(config.OPENROUTER_API_KEY or (sess.get("provider") == "openrouter" and sess.get("api_key")))
 
     return {
         "ok": True,
-        "mode": config.mode(),
-        "model": config.active_model(),
-        "gemini_configured": bool(config.GEMINI_API_KEY),
-        "openrouter_configured": bool(config.OPENROUTER_API_KEY),
+        "mode": mode,
+        "model": active_model,
+        "gemini_configured": gemini_configured,
+        "openrouter_configured": openrouter_configured,
     }
 
 
@@ -198,26 +330,90 @@ def switch_config(body: SwitchConfigBody):
 async def upload(files: list[UploadFile] = File(...)):
     if not files:
         raise HTTPException(400, "No files received.")
+    if len(files) > config.MAX_FILES_PER_SESSION:
+        raise HTTPException(413, f"A session can contain at most {config.MAX_FILES_PER_SESSION} uploaded files.")
     sess, created = None, []
-    for f in files:
-        name = f.filename or ""
-        ext = Path(name).suffix.lower()
-        if ext not in (".csv", ".xlsx", ".xls"):
-            raise HTTPException(400, f"'{name}' is not supported. Only .csv, .xlsx, and .xls files are allowed.")
-        data = await f.read()
-        if len(data) > config.MAX_UPLOAD_MB * 1024 * 1024:
-            raise HTTPException(400, f"'{name}' exceeds the {config.MAX_UPLOAD_MB} MB limit.")
-        if sess is None:
-            sess = _new_session()
-        table_base = _sanitize_table(Path(name).stem)
-        path = config.UPLOAD_DIR / f"{sess['id']}_{table_base}{ext}"
-        path.write_bytes(data)
-        try:
-            loaded = sess["engine"].load_file(table_base, str(path))
-            created.extend(loaded)
-        except Exception as e:
-            raise HTTPException(400, f"Could not parse '{name}': {e}")
-    return {"session_id": sess["id"], "tables": _table_payload(sess["engine"])}
+    written_paths: list[Path] = []
+    max_bytes = config.MAX_UPLOAD_MB * 1024 * 1024
+    max_session_bytes = config.MAX_SESSION_UPLOAD_MB * 1024 * 1024
+    session_bytes = 0
+    chunk_size = 1024 * 1024  # 1 MB chunks
+
+    try:
+        for f in files:
+            name = f.filename or ""
+            ext = Path(name).suffix.lower()
+            if ext not in (".csv", ".xlsx", ".xls"):
+                raise HTTPException(400, f"'{name}' is not supported. Only .csv, .xlsx, and .xls files are allowed.")
+
+            if sess is None:
+                sess = _new_session()
+
+            table_base = _sanitize_table(Path(name).stem)
+            if any(table.casefold() == table_base.casefold() for table in sess["engine"].tables):
+                raise HTTPException(400, "A table with this name is already loaded.")
+            path = config.UPLOAD_DIR / f"{sess['id']}_{table_base}{ext}"
+
+            # Path traversal prevention: must resolve strictly inside UPLOAD_DIR
+            try:
+                resolved_path = path.resolve()
+                upload_dir_resolved = config.UPLOAD_DIR.resolve()
+                if path.is_symlink() or path.exists() or not resolved_path.is_relative_to(upload_dir_resolved):
+                    raise HTTPException(400, "Invalid upload path.")
+            except Exception:
+                raise HTTPException(400, "Invalid upload filename.") from None
+
+            # Stream chunks to disk and enforce max size limit on cumulative streamed bytes
+            total_bytes = 0
+            file_too_large = False
+            with open(path, "xb") as out_f:
+                while True:
+                    chunk = await f.read(chunk_size)
+                    if not chunk:
+                        break
+                    total_bytes += len(chunk)
+                    if total_bytes > max_bytes:
+                        file_too_large = True
+                        break
+                    session_bytes += len(chunk)
+                    if session_bytes > max_session_bytes:
+                        file_too_large = True
+                        break
+                    out_f.write(chunk)
+
+            if file_too_large:
+                path.unlink(missing_ok=True)
+                raise HTTPException(413, "The upload exceeds the configured per-file or per-session size limit.")
+
+            written_paths.append(path)
+
+            try:
+                loaded = sess["engine"].load_file(table_base, str(path))
+                created.extend(loaded)
+            except Exception as exc:
+                path.unlink(missing_ok=True)
+                if isinstance(exc, ValueError) and "already loaded" in str(exc).lower():
+                    raise HTTPException(400, "A table with this name is already loaded.") from None
+                raise HTTPException(400, "The uploaded file could not be parsed as a supported dataset.")
+    except HTTPException:
+        for p in written_paths:
+            p.unlink(missing_ok=True)
+        if sess and sess["id"] in sessions:
+            _drop_session(sess["id"])
+        raise
+    except Exception:
+        for p in written_paths:
+            p.unlink(missing_ok=True)
+        if sess and sess["id"] in sessions:
+            _drop_session(sess["id"])
+        raise HTTPException(500, "Upload processing failed. Check the file format and try again.")
+
+    try:
+        return {"session_id": sess["id"], "tables": _table_payload(sess["engine"])}
+    except Exception:
+        if sess and sess["id"] in sessions:
+            _drop_session(sess["id"])
+        raise HTTPException(500, "Upload processing failed while preparing the dataset summary.") from None
 
 
 @app.post("/api/sample")
@@ -225,9 +421,15 @@ def load_sample():
     p = config.DATA_DIR / "sales.csv"
     if not p.exists():
         raise HTTPException(500, "Sample dataset missing from data/.")
-    sess = _new_session()
-    sess["engine"].load_csv("sales", str(p))
-    return {"session_id": sess["id"], "tables": _table_payload(sess["engine"])}
+    sess = None
+    try:
+        sess = _new_session()
+        sess["engine"].load_csv("sales", str(p))
+        return {"session_id": sess["id"], "tables": _table_payload(sess["engine"])}
+    except Exception:
+        if sess and sess["id"] in sessions:
+            _drop_session(sess["id"])
+        raise HTTPException(500, "The sample dataset could not be loaded.") from None
 
 
 class ChatBody(BaseModel):
@@ -239,7 +441,7 @@ class ChatBody(BaseModel):
 
 @app.post("/api/chat")
 def chat(body: ChatBody):
-    sess = sessions.get(body.session_id)
+    sess = _session_for(body.session_id)
     if not sess:
         raise HTTPException(404, "Unknown session — upload a dataset first.")
     if not sess["engine"].tables:
@@ -247,11 +449,16 @@ def chat(body: ChatBody):
 
     # Update agent dynamically if provider / model passed in chat request
     if body.provider and (body.provider != sess.get("provider") or (body.model and body.model != sess.get("model"))):
+        new_model = body.model or config.active_model()
+        try:
+            new_agent = _create_agent(sess["engine"], body.session_id, body.provider, new_model, sess.get("api_key"))
+        except Exception:
+            raise HTTPException(503, "The requested provider could not be initialized; existing session settings were kept.") from None
         if body.provider != sess.get("provider"):
-            sess["contents"] = []
-        sess["agent"] = _create_agent(sess["engine"], body.session_id, body.provider, body.model)
+            sess["contents"].clear()
+        sess["agent"] = new_agent
         sess["provider"] = body.provider
-        sess["model"] = body.model or config.active_model()
+        sess["model"] = new_model
 
     start_time = time.time()
 
@@ -268,8 +475,8 @@ def chat(body: ChatBody):
                         "status": "success",
                     })
                 yield f"data: {json.dumps(ev, default=str)}\n\n"
-        except Exception as e:  # never kill the stream mid-answer
-            yield f"data: {json.dumps({'type': 'error', 'detail': f'{type(e).__name__}: {e}'})}\n\n"
+        except Exception:  # never expose provider/engine exception text to the client
+            yield f"data: {json.dumps({'type': 'error', 'detail': 'The analysis request failed unexpectedly. Your session is still available; please try again.'})}\n\n"
         yield 'data: {"type": "done"}\n\n'
 
     return StreamingResponse(gen(), media_type="text/event-stream",
@@ -282,10 +489,13 @@ class NewChatBody(BaseModel):
 
 @app.post("/api/chat/new")
 def new_chat(body: NewChatBody):
-    sess = sessions.get(body.session_id)
+    sess = _session_for(body.session_id)
     if not sess:
         raise HTTPException(404, "Unknown session.")
-    sess["contents"] = []
+    sess["contents"].clear()
+    reset_conversation = getattr(sess["agent"], "reset_conversation", None)
+    if callable(reset_conversation):
+        reset_conversation()
     return {"ok": True, "session_id": body.session_id, "message": "Conversation context reset."}
 
 
@@ -297,7 +507,7 @@ def schema(sid: str, table: str):
 
 @app.get("/api/preview/{sid}/{table}")
 def preview(sid: str, table: str, limit: int = 500, offset: int = 0):
-    sess = sessions.get(sid)
+    sess = _session_for(sid)
     if not sess:
         raise HTTPException(404, "Unknown session.")
     if table not in sess["engine"].tables:
@@ -322,7 +532,7 @@ def preview(sid: str, table: str, limit: int = 500, offset: int = 0):
 
 
 def _engine_for(sid: str, table: str) -> DataEngine:
-    sess = sessions.get(sid)
+    sess = _session_for(sid)
     if not sess:
         raise HTTPException(404, "Unknown session.")
     if table not in sess["engine"].tables:
@@ -374,7 +584,7 @@ def api_report(sid: str, table: str):
 
 @app.get("/api/logs/{sid}")
 def api_logs(sid: str):
-    sess = sessions.get(sid)
+    sess = _session_for(sid)
     if not sess:
         raise HTTPException(404, "Unknown session.")
     return {
@@ -388,6 +598,26 @@ def api_logs(sid: str):
     }
 
 
-# Static: downloadable query exports, then the frontend itself (must be last).
-app.mount("/api/exports", StaticFiles(directory=config.EXPORT_DIR), name="exports")
+# Export downloads are served only for a live session and a generated flat filename.
+@app.get("/api/exports/{sid}/{filename}")
+def download_export(sid: str, filename: str):
+    if not re.fullmatch(r"[0-9a-f]{32}", sid) or not _session_for(sid):
+        raise HTTPException(404, "Export not found.")
+    if not re.fullmatch(r"[0-9a-f]{32}\.csv", filename):
+        raise HTTPException(404, "Export not found.")
+    root = config.EXPORT_DIR.resolve()
+    try:
+        session_dir = (config.EXPORT_DIR / sid).resolve(strict=True)
+        target = (session_dir / filename).resolve(strict=True)
+        if ((config.EXPORT_DIR / sid).is_symlink()
+                or not session_dir.is_relative_to(root) or not target.is_relative_to(session_dir)
+                or not target.is_file()):
+            raise HTTPException(404, "Export not found.")
+    except (OSError, RuntimeError, ValueError):
+        raise HTTPException(404, "Export not found.") from None
+    from fastapi.responses import FileResponse
+    return FileResponse(target, filename=filename, media_type="text/csv")
+
+
+# Static frontend mount must remain last so it cannot shadow API routes.
 app.mount("/", StaticFiles(directory=config.FRONTEND_DIR, html=True), name="frontend")

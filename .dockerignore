@@ -1,0 +1,23 @@
+# Local credentials and configuration
+.env
+.env.*
+
+# Development and repository metadata
+.git/
+.venv/
+venv/
+node_modules/
+tests/
+docs/
+screenshot/
+ref/
+.netlify/
+
+# Runtime and generated artifacts
+uploads/
+exports/
+__pycache__/
+**/__pycache__/
+.pytest_cache/
+*.py[cod]
+*.log

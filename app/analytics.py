@@ -208,6 +208,8 @@ def audit_data_quality(engine: DataEngine, table: str) -> dict:
     df = engine.execute(f'SELECT * FROM "{table}" LIMIT 100000')
     total_rows = len(df)
     total_cols = len(df.columns)
+    if total_rows == 0:
+        return {"ok": False, "error": "Table is empty"}
     total_cells = total_rows * total_cols if total_rows and total_cols else 1
 
     null_count = int(df.isna().sum().sum())
@@ -278,7 +280,9 @@ def audit_data_quality(engine: DataEngine, table: str) -> dict:
 # ------------------------------------------------------------------ 3. Time-Series Forecasting
 def forecast_metric(engine: DataEngine, table: str, date_col: str | None = None,
                     metric_col: str | None = None, periods: int = 6) -> dict:
-    """Perform linear trend projection and 95% confidence intervals with intelligent metric selection and 0-floor bounds."""
+    """Project a linear trend with a residual-spread band and intelligent metric selection."""
+    if periods < 1:
+        return {"ok": False, "error": "Forecast periods must be a positive integer."}
     df = engine.execute(f'SELECT * FROM "{table}" LIMIT 50000')
     if df.empty:
         return {"ok": False, "error": "Table is empty"}
@@ -289,6 +293,11 @@ def forecast_metric(engine: DataEngine, table: str, date_col: str | None = None,
     measures = classes["measures"]
     categories = classes["categories"]
     ids = classes["ids"]
+
+    if date_col is not None and date_col not in df.columns:
+        return {"ok": False, "error": f"Date column '{date_col}' was not found in table '{table}'."}
+    if metric_col is not None and metric_col != "__record_count__" and metric_col not in df.columns:
+        return {"ok": False, "error": f"Metric column '{metric_col}' was not found in table '{table}'."}
 
     # Available date columns
     available_dates = dates if dates else (categories if categories else list(df.columns))
@@ -301,6 +310,9 @@ def forecast_metric(engine: DataEngine, table: str, date_col: str | None = None,
     else:
         available_metrics.append("__record_count__")
 
+    if metric_col and metric_col != "__record_count__" and metric_col in df.columns and \
+            not pd.api.types.is_numeric_dtype(df[metric_col]):
+        return {"ok": False, "error": f"Metric column '{metric_col}' must be numeric."}
     if metric_col and (metric_col in df.columns or metric_col == "__record_count__"):
         metric_c = metric_col
     else:
@@ -373,7 +385,7 @@ def forecast_metric(engine: DataEngine, table: str, date_col: str | None = None,
             {
                 "type": "scatter",
                 "mode": "lines",
-                "name": "Upper 95% Confidence",
+                "name": "Upper 1.96× Residual SD",
                 "x": future_dates,
                 "y": [round(float(v), 2) for v in upper_bounds],
                 "line": {"color": "rgba(217, 119, 87, 0.3)", "width": 1},
@@ -383,7 +395,7 @@ def forecast_metric(engine: DataEngine, table: str, date_col: str | None = None,
                 "type": "scatter",
                 "mode": "lines",
                 "fill": "tonexty",
-                "name": "Confidence Band",
+                "name": "Residual Spread Band",
                 "x": future_dates,
                 "y": [round(float(v), 2) for v in lower_bounds],
                 "fillcolor": "rgba(217, 119, 87, 0.12)",
@@ -411,7 +423,8 @@ def forecast_metric(engine: DataEngine, table: str, date_col: str | None = None,
         "available_metrics": available_metrics,
         "historical_points": n,
         "forecast_periods": periods,
-        "trend_direction": "Upward" if slope > 0 else "Downward",
+        "trend_direction": "Flat" if np.isclose(slope, 0.0, rtol=1e-9, atol=1e-12)
+        else "Upward" if slope > 0 else "Downward",
         "growth_rate_pct": round((slope / mean_y) * 100, 2),
         "spec": spec,
         "projections": [
@@ -430,7 +443,11 @@ def forecast_metric(engine: DataEngine, table: str, date_col: str | None = None,
 def generate_report(engine: DataEngine, table: str) -> dict:
     """Generate a printable Executive Summary Report in Markdown & HTML formats."""
     dash = generate_dashboard(engine, table)
+    if not dash.get("ok"):
+        return dash
     qual = audit_data_quality(engine, table)
+    if not qual.get("ok"):
+        return qual
 
     kpi_lines = "\n".join(f"- **{k['label']}**: `{k['value']}` ({k.get('sub', '')})" for k in dash.get("kpis", []))
     recs = "\n".join(f"1. {r}" for r in qual.get("recommendations", []))

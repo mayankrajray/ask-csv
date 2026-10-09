@@ -96,6 +96,35 @@ def test_guard_ignores_keywords_inside_literals():
     assert validate_readonly('SELECT "set" FROM sales')
 
 
+@pytest.mark.parametrize("query", [
+    "PrAgMa version",
+    "INSTALL httpfs",
+    "LOAD httpfs",
+    "EXPORT DATABASE 'x'",
+    "IMPORT DATABASE 'x'",
+    "CALL some_function()",
+    "SELECT 1; /* hidden */ DELETE FROM sales",
+    "WITH q AS (SELECT 1) UPDATE sales SET x = 2",
+    "SELECT * FROM read_csv('/private/file.csv')",
+    "SELECT * FROM parquet_scan('C:/private/file.parquet')",
+])
+def test_guard_rejects_adversarial_sql_variants(query):
+    with pytest.raises(ValueError):
+        validate_readonly(query)
+
+
+@pytest.mark.parametrize("query", [
+    "SELECT 'DROP; DELETE; COPY' AS text_value",
+    'SELECT "update" AS "update" FROM (SELECT 1 AS "update") nested_query',
+    "WITH q AS (SELECT 1 AS n) SELECT n FROM q UNION SELECT 2",
+    "SELECT (SELECT 1) AS nested_value",
+    "EXPLAIN SELECT 1",
+    "DESCRIBE SELECT 1 AS safe_value",
+])
+def test_guard_preserves_legitimate_nested_read_queries(query):
+    assert validate_readonly(query)
+
+
 def test_engine_blocks_external_access(tmp_path):
     import duckdb
     from app.engine import DataEngine
