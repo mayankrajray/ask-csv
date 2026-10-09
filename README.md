@@ -10,10 +10,6 @@ The frontend is plain HTML, CSS, and JavaScript served by FastAPI. The project h
 
 ## Demo Video
 
-> **TODO: Record and add the final 10–30 second demo video before submission.**
-
-Replace this placeholder with the real video URL after recording:
-
 **Demo video:** [Watch the AskCSV Demo](https://drive.google.com/file/d/13e3eB8YVjyLibMiZo6psSu10Wgmb4J0o/view?usp=sharing)
 
 The video should show a sample CSV upload, a natural-language question, and the resulting analysis with SQL, chart, and explanation.
